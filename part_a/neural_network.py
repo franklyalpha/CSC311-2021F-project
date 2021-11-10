@@ -70,7 +70,11 @@ class AutoEncoder(nn.Module):
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
-        out = inputs
+        inner = self.g.forward(inputs)
+        inner_activ = nn.Sigmoid()(inner)
+        outer = self.h.forward(inner_activ)
+        outer_activ = nn.Sigmoid()(outer)
+        out = outer_activ
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -83,7 +87,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
 
     :param model: Module
     :param lr: float
-    :param lamb: float
+    :param lamb: float -> for regularization
     :param train_data: 2D FloatTensor
     :param zero_train_data: 2D FloatTensor
     :param valid_data: Dict
@@ -162,13 +166,13 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = None
-    model = None
+    k = 100
+    model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = None
-    num_epoch = None
-    lamb = None
+    lr = 0.01
+    num_epoch = 2
+    lamb = 0.001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
