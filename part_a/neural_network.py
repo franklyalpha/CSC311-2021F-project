@@ -94,7 +94,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :param num_epoch: int
     :return: None
     """
-    # TODO: Add a regularizer to the cost function. 
+    # TODO: Add a regularizer to the cost function.
+    # discuss possibilities: 1: adding the regularization term only once
     
     # Tell PyTorch you are training the model.
     model.train()
@@ -117,7 +118,9 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
-            loss = torch.sum((output - target) ** 2.)
+            norm = model.get_weight_norm()
+            denom = 2 * num_student
+            loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
             loss.backward()
 
             train_loss += loss.item()
@@ -166,13 +169,13 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 10
+    k = 100
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = 0.001
-    num_epoch = 10000
-    lamb = 0.001
+    lr = 0.01
+    num_epoch = 50
+    lamb = 0.1
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
