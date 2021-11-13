@@ -48,7 +48,8 @@ class AutoEncoder(nn.Module):
 
         # Define linear functions.
         self.g = nn.Linear(num_question, k)
-        self.h = nn.Linear(k, num_question)
+        self.h = nn.Linear(5, num_question)
+        self.i = nn.Linear(k, 5)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -57,7 +58,8 @@ class AutoEncoder(nn.Module):
         """
         g_w_norm = torch.norm(self.g.weight, 2) ** 2
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
-        return g_w_norm + h_w_norm
+        i_w_norm = torch.norm(self.i.weight, 2) ** 2
+        return g_w_norm + h_w_norm + i_w_norm
 
     def forward(self, inputs):
         """ Return a forward pass given inputs.
@@ -72,7 +74,9 @@ class AutoEncoder(nn.Module):
         #####################################################################
         inner = self.g.forward(inputs)
         inner_activ = nn.Sigmoid()(inner)
-        outer = self.h.forward(inner_activ)
+        hidden1 = self.i.forward(inner_activ)
+        hidden1_act = nn.Sigmoid()(hidden1)
+        outer = self.h.forward(hidden1_act)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
         #####################################################################
@@ -96,19 +100,29 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     """
     # TODO: Add a regularizer to the cost function.
     # discuss possibilities: 1: adding the regularization term only once
-    
+
     # Tell PyTorch you are training the model.
     model.train()
 
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
-
+    valid_acc = 0.
+    pass1, pass2 = False, False
     for epoch in range(0, num_epoch):
         train_loss = 0.
+        if (valid_acc >= 0.693) and not pass1:
+            new_lr = lr / 2
+            optimizer = optim.SGD(model.parameters(), lr=new_lr)
+            pass1 = True
+        if (valid_acc >= 0.698) and not pass2:
+            new_lr = lr / 5
+            optimizer = optim.SGD(model.parameters(), lr=new_lr)
+            pass2 = True
         # norm = model.get_weight_norm()
         # denom = 2
         for user_id in range(num_student):
+
             inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
             target = inputs.clone()
 
@@ -122,7 +136,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             norm = model.get_weight_norm()
             denom = 2 * num_student
             loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-
+            # loss = torch.sum((output - target) ** 2.)
             # setting regularization at last to reduce final model's extreme values
             # requiring a large lambda
             # this method doesn't work, result in error
@@ -166,7 +180,7 @@ def evaluate(model, train_data, valid_data):
         if guess == valid_data["is_correct"][i]:
             correct += 1
         total += 1
-    return correct / float(total)
+    return round(correct / float(total), 4)
 
 
 def main():
@@ -183,8 +197,8 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 50
-    lamb = 1
+    num_epoch = 500
+    lamb = 0.1
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
