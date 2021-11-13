@@ -96,19 +96,19 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     """
     # TODO: Add a regularizer to the cost function.
     # discuss possibilities: 1: adding the regularization term only once
-    
+
     # Tell PyTorch you are training the model.
     model.train()
 
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
-
     for epoch in range(0, num_epoch):
         train_loss = 0.
         # norm = model.get_weight_norm()
         # denom = 2
         for user_id in range(num_student):
+
             inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
             target = inputs.clone()
 
@@ -122,7 +122,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             norm = model.get_weight_norm()
             denom = 2 * num_student
             loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-
+            # loss = torch.sum((output - target) ** 2.)
             # setting regularization at last to reduce final model's extreme values
             # requiring a large lambda
             # this method doesn't work, result in error
@@ -166,7 +166,7 @@ def evaluate(model, train_data, valid_data):
         if guess == valid_data["is_correct"][i]:
             correct += 1
         total += 1
-    return correct / float(total)
+    return round(correct / float(total), 4)
 
 
 def main():
@@ -178,13 +178,13 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 100
+    k = 50
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
     lr = 0.01
     num_epoch = 50
-    lamb = 1
+    lamb = 0.1
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
