@@ -115,7 +115,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             new_lr = lr / 2
             optimizer = optim.SGD(model.parameters(), lr=new_lr)
             pass1 = True
-        if (valid_acc >= 0.698) and not pass2:
+        if (valid_acc >= 0.697) and not pass2:
             new_lr = lr / 5
             optimizer = optim.SGD(model.parameters(), lr=new_lr)
             pass2 = True
