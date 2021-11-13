@@ -95,8 +95,6 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :return: None
     """
     # TODO: Add a regularizer to the cost function.
-    # discuss possibilities: 1: adding the regularization term only once
-
     # Tell PyTorch you are training the model.
     model.train()
 
@@ -123,13 +121,6 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
                 loss = torch.sum((output - target) ** 2.)
             else:
                 loss += torch.sum((output - target) ** 2.)
-            # setting regularization at last to reduce final model's extreme values
-            # requiring a large lambda
-            # this method doesn't work, result in error
-            # if user_id == num_student - 1:
-            #     loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # else:
-            #     loss = torch.sum((output - target) ** 2.)
         loss += (lamb / denom) * norm
         loss.backward()
         train_loss += loss.item()
@@ -184,7 +175,7 @@ def main():
     # Set optimization hyperparameters.
     lr = 0.01
     num_epoch = 50
-    lamb = 0.1
+    lamb = 0.01
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)

@@ -166,7 +166,7 @@ def evaluate(model, train_data, valid_data):
         if guess == valid_data["is_correct"][i]:
             correct += 1
         total += 1
-    return round(correct / float(total), 4)
+    return correct / float(total)
 
 
 def main():
