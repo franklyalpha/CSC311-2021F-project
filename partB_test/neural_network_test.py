@@ -169,13 +169,12 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 100
+    k = 50
     model = AutoEncoder(train_matrix.shape[1], k)
-
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 50
-    lamb = 0.01
+    num_epoch = 500
+    lamb = 0.1
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)

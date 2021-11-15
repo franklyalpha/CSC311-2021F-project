@@ -8,6 +8,7 @@ import torch.utils.data
 
 import numpy as np
 import torch
+import cuda
 
 
 def load_data(base_path="../data"):
@@ -38,7 +39,7 @@ def load_data(base_path="../data"):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, num_question, k=100):
+    def __init__(self, num_question, k, l):
         """ Initialize a class AutoEncoder.
 
         :param num_question: int
@@ -48,8 +49,9 @@ class AutoEncoder(nn.Module):
 
         # Define linear functions.
         self.g = nn.Linear(num_question, k)
-        self.h = nn.Linear(5, num_question)
-        self.i = nn.Linear(k, 5)
+        self.h = nn.Linear(k, num_question)
+        self.i1 = nn.Linear(k, l)
+        self.i2 = nn.Linear(l, k)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -58,7 +60,7 @@ class AutoEncoder(nn.Module):
         """
         g_w_norm = torch.norm(self.g.weight, 2) ** 2
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
-        i_w_norm = torch.norm(self.i.weight, 2) ** 2
+        i_w_norm = torch.norm(self.i1.weight, 2) ** 2
         return g_w_norm + h_w_norm + i_w_norm
 
     def forward(self, inputs):
@@ -74,9 +76,11 @@ class AutoEncoder(nn.Module):
         #####################################################################
         inner = self.g.forward(inputs)
         inner_activ = nn.Sigmoid()(inner)
-        hidden1 = self.i.forward(inner_activ)
+        hidden1 = self.i1.forward(inner_activ)
         hidden1_act = nn.Sigmoid()(hidden1)
-        outer = self.h.forward(hidden1_act)
+        hidden2 = self.i2.forward(hidden1_act)
+        hidden2_act = nn.ReLU()(hidden2)
+        outer = self.h.forward(hidden2_act)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
         #####################################################################
@@ -111,14 +115,14 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     pass1, pass2 = False, False
     for epoch in range(0, num_epoch):
         train_loss = 0.
-        if (valid_acc >= 0.693) and not pass1:
-            new_lr = lr / 2
-            optimizer = optim.SGD(model.parameters(), lr=new_lr)
-            pass1 = True
-        if (valid_acc >= 0.697) and not pass2:
-            new_lr = lr / 5
-            optimizer = optim.SGD(model.parameters(), lr=new_lr)
-            pass2 = True
+        # if (valid_acc >= 0.699) and not pass1:
+        #     new_lr = lr / 5
+        #     optimizer = optim.SGD(model.parameters(), lr=new_lr)
+        #     pass1 = True
+        # if (valid_acc >= 0.697) and not pass2:
+        #     new_lr = lr / 5
+        #     optimizer = optim.SGD(model.parameters(), lr=new_lr)
+        #     pass2 = True
         # norm = model.get_weight_norm()
         # denom = 2
         for user_id in range(num_student):
@@ -133,10 +137,10 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
-            norm = model.get_weight_norm()
-            denom = 2 * num_student
-            loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # loss = torch.sum((output - target) ** 2.)
+            # norm = model.get_weight_norm()
+            # denom = 2 * num_student
+            # loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
+            loss = torch.sum((output - target) ** 2.)
             # setting regularization at last to reduce final model's extreme values
             # requiring a large lambda
             # this method doesn't work, result in error
@@ -192,14 +196,17 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
+
     k = 100
-    model = AutoEncoder(train_matrix.shape[1], k)
+    l = 5
+    model = AutoEncoder(train_matrix.shape[1], k, l)
 
     # Set optimization hyperparameters.
     lr = 0.01
     num_epoch = 500
     lamb = 0.1
-
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    a = 'alpha'
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
     #####################################################################
@@ -209,3 +216,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
