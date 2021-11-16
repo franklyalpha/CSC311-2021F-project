@@ -39,7 +39,7 @@ def load_data(base_path="../data"):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, num_question, k, l):
+    def __init__(self, num_question, k, l, m):
         """ Initialize a class AutoEncoder.
 
         :param num_question: int
@@ -51,7 +51,10 @@ class AutoEncoder(nn.Module):
         self.g = nn.Linear(num_question, k)
         self.h = nn.Linear(k, num_question)
         self.i1 = nn.Linear(k, l)
-        self.i2 = nn.Linear(l, k)
+        self.i2 = nn.Linear(l, m)
+        self.i3 = nn.Linear(m, l)
+        self.i4 = nn.Linear(l, k)
+
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -75,12 +78,14 @@ class AutoEncoder(nn.Module):
         # Use sigmoid activations for f and g.                              #
         #####################################################################
         inner = self.g.forward(inputs)
-        inner_activ = nn.Sigmoid()(inner)
-        hidden1 = self.i1.forward(inner_activ)
-        hidden1_act = nn.Sigmoid()(hidden1)
-        hidden2 = self.i2.forward(hidden1_act)
-        hidden2_act = nn.ReLU()(hidden2)
-        outer = self.h.forward(hidden2_act)
+        inner_act = nn.Tanh()(inner)
+        hidden1 = self.i1.forward(inner_act)
+        # hidden1_act = nn.Sigmoid()(hidden1)
+        hidden2 = self.i2.forward(hidden1)
+        hidden2_act = nn.Hardsigmoid()(hidden2)
+        hidden3 = self.i3.forward(hidden2_act)
+        hidden4 = self.i4.forward(hidden3)
+        outer = self.h.forward(hidden4)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
         #####################################################################
@@ -115,8 +120,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     pass1, pass2 = False, False
     for epoch in range(0, num_epoch):
         train_loss = 0.
-        # if (valid_acc >= 0.699) and not pass1:
-        #     new_lr = lr / 5
+        # if (valid_acc >= 0.70) and not pass1:
+        #     new_lr = lr / 10
         #     optimizer = optim.SGD(model.parameters(), lr=new_lr)
         #     pass1 = True
         # if (valid_acc >= 0.697) and not pass2:
@@ -198,11 +203,12 @@ def main():
     # Set model hyperparameters.
 
     k = 100
-    l = 5
-    model = AutoEncoder(train_matrix.shape[1], k, l)
+    l = 30
+    m = 10
+    model = AutoEncoder(train_matrix.shape[1], k, l, m)
 
     # Set optimization hyperparameters.
-    lr = 0.01
+    lr = 0.001
     num_epoch = 500
     lamb = 0.1
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
