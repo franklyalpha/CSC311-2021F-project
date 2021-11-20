@@ -193,8 +193,27 @@ def main():
     # TODO:                                                             #
     # Implement part (d)                                                #
     #####################################################################
-    pass
-    #####################################################################
+
+    # we have 1774 questions in total. Select three:
+    questions = [64, 734, 1356]
+    # we sort the theta for the sake a=of plotting
+    theta_copy = theta.reshape(-1)
+    theta_copy.sort()
+
+    for qid in questions:
+        prob = sigmoid(theta_copy - beta[qid])
+        plt.plot(theta_copy, prob, label="Question {} with beta {:.2f}".format(
+            qid, beta[qid][0]))
+
+    plt.ylabel("Probability of the Correct Response")
+    plt.xlabel("Theta")
+    plt.title(
+        "Probability of the Correct Response to Selected Questions vs. Theta")
+    plt.legend()
+    plt.savefig("Q2d.png")
+    plt.show()
+
+#####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
 
