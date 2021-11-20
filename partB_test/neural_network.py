@@ -63,8 +63,11 @@ class AutoEncoder(nn.Module):
         """
         g_w_norm = torch.norm(self.g.weight, 2) ** 2
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
-        i_w_norm = torch.norm(self.i1.weight, 2) ** 2
-        return g_w_norm + h_w_norm + i_w_norm
+        i1_w_norm = torch.norm(self.i1.weight, 2) ** 2
+        i2_w_norm = torch.norm(self.i2.weight, 2) ** 2
+        i3_w_norm = torch.norm(self.i3.weight, 2) ** 2
+        i4_w_norm = torch.norm(self.i4.weight, 2) ** 2
+        return g_w_norm + h_w_norm + i1_w_norm + i2_w_norm + i3_w_norm + i4_w_norm
 
     def forward(self, inputs):
         """ Return a forward pass given inputs.
@@ -82,7 +85,7 @@ class AutoEncoder(nn.Module):
         hidden1 = self.i1.forward(inner_act)
         # hidden1_act = nn.Sigmoid()(hidden1)
         hidden2 = self.i2.forward(hidden1)
-        hidden2_act = nn.Hardsigmoid()(hidden2)
+        hidden2_act = nn.Sigmoid()(hidden2)
         hidden3 = self.i3.forward(hidden2_act)
         hidden4 = self.i4.forward(hidden3)
         outer = self.h.forward(hidden4)
@@ -120,6 +123,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     pass1, pass2 = False, False
     for epoch in range(0, num_epoch):
         train_loss = 0.
+        # loss = None
         # if (valid_acc >= 0.70) and not pass1:
         #     new_lr = lr / 10
         #     optimizer = optim.SGD(model.parameters(), lr=new_lr)
@@ -145,6 +149,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             # norm = model.get_weight_norm()
             # denom = 2 * num_student
             # loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
+
             loss = torch.sum((output - target) ** 2.)
             # setting regularization at last to reduce final model's extreme values
             # requiring a large lambda
@@ -153,6 +158,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             #     loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
             # else:
             #     loss = torch.sum((output - target) ** 2.)
+
             loss.backward()
 
             train_loss += loss.item()
@@ -193,6 +199,7 @@ def evaluate(model, train_data, valid_data):
 
 
 def main():
+
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
 
     #####################################################################
@@ -210,11 +217,12 @@ def main():
     # Set optimization hyperparameters.
     lr = 0.001
     num_epoch = 500
-    lamb = 0.1
+    lamb = 0.0001
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     a = 'alpha'
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################

@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
-
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -103,6 +103,9 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
+    loss_recording = []
+    valid_acc_record = []
+    epoch_record = []
     for epoch in range(0, num_epoch):
         train_loss = 0.
         # norm = model.get_weight_norm()
@@ -119,10 +122,10 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
-            norm = model.get_weight_norm()
-            denom = 2 * num_student
-            loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # loss = torch.sum((output - target) ** 2.)
+            # norm = model.get_weight_norm()
+            # denom = 2 * num_student
+            # loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
+            loss = torch.sum((output - target) ** 2.)
             # setting regularization at last to reduce final model's extreme values
             # requiring a large lambda
             # this method doesn't work, result in error
@@ -138,9 +141,27 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc = evaluate(model, zero_train_data, valid_data)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
+        loss_recording.append(train_loss)
+        valid_acc_record.append(valid_acc)
+        epoch_record.append(epoch)
+    plot(epoch_record, loss_recording, valid_acc_record)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
+
+
+def plot(epoches, losses, valid_accs):
+    plt.clf()
+    plt.title("training loss and epoch")
+    plt.plot(epoches, losses)
+    plt.legend()
+    plt.savefig("neural_network_loss")
+    plt.clf()
+    plt.title("validation accuracy and epoch")
+    plt.plot(epoches, valid_accs)
+    plt.legend()
+    plt.savefig("neural_network_valid_accuracy")
+
 
 
 def evaluate(model, train_data, valid_data):
@@ -183,11 +204,13 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 50
+    num_epoch = 37
     lamb = 0.1
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
+    test_result = evaluate(model, zero_train_matrix, test_data)
+    print("test accuracy: \n" + str(test_result))
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
