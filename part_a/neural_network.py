@@ -122,10 +122,10 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
-            # norm = model.get_weight_norm()
-            # denom = 2 * num_student
-            # loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            loss = torch.sum((output - target) ** 2.)
+            norm = model.get_weight_norm()
+            denom = 2 * num_student
+            loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
+            # loss = torch.sum((output - target) ** 2.)
             # setting regularization at last to reduce final model's extreme values
             # requiring a large lambda
             # this method doesn't work, result in error
@@ -155,12 +155,12 @@ def plot(epoches, losses, valid_accs):
     plt.title("training loss and epoch")
     plt.plot(epoches, losses)
     plt.legend()
-    plt.savefig("neural_network_loss")
+    plt.savefig("network_reg_loss")
     plt.clf()
     plt.title("validation accuracy and epoch")
     plt.plot(epoches, valid_accs)
     plt.legend()
-    plt.savefig("neural_network_valid_accuracy")
+    plt.savefig("network_reg_accuracy")
 
 
 
@@ -204,7 +204,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 37
+    num_epoch = 50
     lamb = 0.1
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
