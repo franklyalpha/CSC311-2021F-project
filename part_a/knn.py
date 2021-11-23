@@ -47,12 +47,14 @@ def knn_impute_by_item(matrix, valid_data, k):
     #####################################################################
     return acc
 
+
 def _plot(k_vals, accs, filename):
     plt.clf()
     plt.plot(k_vals, accs, marker="o")
     plt.xlabel("k")
     plt.ylabel("accuracy")
     plt.savefig(filename)
+
 
 def main():
     sparse_matrix = load_train_sparse("./data").toarray()

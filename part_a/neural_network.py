@@ -126,13 +126,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             denom = 2 * num_student
             loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
             # loss = torch.sum((output - target) ** 2.)
-            # setting regularization at last to reduce final model's extreme values
-            # requiring a large lambda
-            # this method doesn't work, result in error
-            # if user_id == num_student - 1:
-            #     loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # else:
-            #     loss = torch.sum((output - target) ** 2.)
+            # setting regularization at last to reduce final model's
+            # extreme values
             loss.backward()
 
             train_loss += loss.item()
@@ -161,7 +156,6 @@ def plot(epoches, losses, valid_accs):
     plt.plot(epoches, valid_accs)
     plt.legend()
     plt.savefig("network_reg_accuracy")
-
 
 
 def evaluate(model, train_data, valid_data):

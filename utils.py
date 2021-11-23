@@ -1,8 +1,16 @@
+import datetime
+
 from scipy.sparse import load_npz
 
 import numpy as np
 import csv
 import os
+import datetime
+
+import typing
+
+from typing import List
+from typing import Optional
 
 
 def _load_csv(path):
@@ -59,6 +67,101 @@ def load_train_csv(root_dir="/data"):
     """
     path = os.path.join(root_dir, "train_data.csv")
     return _load_csv(path)
+
+
+def read_meta(root_dir="../data"):
+    """
+    Returns reading result of student_meta.csv and question_meta.csv as a tuple.
+    """
+    stu_meta_path = os.path.join(root_dir, "student_meta.csv")
+    ques_meta_path = os.path.join(root_dir, "question_meta.csv")
+    stu_data = {
+        "user_id": [],
+        "gender": [],
+        "date_of_birth": [],
+        "premium_pupil": []
+    }
+    que_data = {
+        "question_id": [],
+        "subject_id": []
+    }
+    return (_read_stu_meta(stu_data, stu_meta_path),
+            _read_que_meta(que_data, ques_meta_path))
+
+
+def _read_stu_meta(stu_data, stu_meta_path):
+    with open(stu_meta_path, "r") as csv_file:
+        reader = csv.reader(csv_file)
+        line_count = 0
+        for row in reader:
+            if line_count == 0:
+                line_count += 1
+                continue
+            stu_data["user_id"].append(int(row[0]))
+            stu_data["gender"].append(int(row[1]))
+            if row[2] is not "":
+                date = datetime.datetime.strptime(row[2], "%Y-%m-%d %H:%M:%S.%f")
+                stu_data["date_of_birth"].append(date)
+            else:
+                stu_data["date_of_birth"].append(None)
+            if row[3] is not "":
+                stu_data["premium_pupil"].append(float(row[3]))
+            else:
+                stu_data["premium_pupil"].append(None)
+    return stu_data
+
+
+def _read_que_meta(que_data, que_meta_path):
+    with open(que_meta_path, "r") as csv_file:
+        reader = csv.reader(csv_file)
+        line_count = 0
+        for row in reader:
+            if line_count == 0:
+                line_count += 1
+                continue
+            que_data["question_id"].append(int(row[0]))
+            subjects = []
+            tmp_num = ""
+            for chars in row[1]:
+                if chars in "[] ,":
+                    if tmp_num is not "":
+                        subjects.append(int(tmp_num))
+                    tmp_num = ""
+                    continue
+                tmp_num += chars
+            que_data["subject_id"].append(subjects)
+    return que_data
+
+
+def revert_subj_ques_order(subject_list: List[List[int]]):
+    """
+    return a dictionary where key is subject_id and value is
+    a list of question_id belonging to subject with subject_id.
+    """
+    sub_que_dict = {}
+    for ques_index in range(len(subject_list)):
+        ques_related_sub = subject_list[ques_index]
+        for subject_id in ques_related_sub:
+            if subject_id not in sub_que_dict:
+                sub_que_dict[subject_id] = [ques_index]
+            else:
+                sub_que_dict[subject_id].append(ques_index)
+    return sub_que_dict
+
+
+def normalize_date(date_of_birth: List[Optional[datetime.datetime]]):
+    min_d = min(x for x in date_of_birth if x is not None)
+    max_d = max(x for x in date_of_birth if x is not None)
+    largest_diff = max_d - min_d
+    normalized_date = []
+    for dates in date_of_birth:
+        if dates is None:
+            normalized_date.append(np.NAN)
+            continue
+        else:
+            normalization = (dates - min_d) / largest_diff
+            normalized_date.append(normalization)
+    return normalized_date
 
 
 def load_valid_csv(root_dir="/data"):
