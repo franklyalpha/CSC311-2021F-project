@@ -24,10 +24,10 @@ def pre_process_stu_data():
 
 
 def fill_null_data_user():
+    # load data
     student = read_stu_meta()
-
-    date = normalize_date(student["date_of_birth"])
-    student["date_of_birth"] = date
+    # normalize date of birth
+    student["date_of_birth"] = normalize_date(student["date_of_birth"])
     # set unspecified gender as 1.5
     gender_list = student["gender"]
     for index in range(len(gender_list)):
