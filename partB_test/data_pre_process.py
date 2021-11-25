@@ -13,14 +13,21 @@ predict by threshold: will apply a bias of each question to a ratio of correctne
 '''
 
 
-def pre_process_stu_data(student):
-    full_null_data_user(student)
+def pre_process_stu_data():
+    student = fill_null_data_user()
     closest_user_index = find_similar_users(student, 32)
     train_matrix = load_train_sparse("../data").toarray()
     segment_train = np.take(train_matrix, [closest_user_index], axis=0)
+    correctness = np.nanmean(segment_train, axis=1)
+    # if correctness is > 0.5, this means more students got this one correct.
+    # thus subtract the value by 0.5, and then multiply by 2 gives ratio of answering
 
 
-def full_null_data_user(student):
+def fill_null_data_user():
+    student = read_stu_meta()
+
+    date = normalize_date(student["date_of_birth"])
+    student["date_of_birth"] = date
     # set unspecified gender as 1.5
     gender_list = student["gender"]
     for index in range(len(gender_list)):
@@ -37,6 +44,7 @@ def full_null_data_user(student):
     for index in range(len(dates)):
         if np.isnan(dates[index]):
             dates[index] = date_mean
+    return student
 
 
 def find_similar_users(user_dict, input_user_id):

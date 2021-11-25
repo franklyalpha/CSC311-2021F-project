@@ -227,7 +227,5 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    student, question = read_meta()
-    date = normalize_date(student["date_of_birth"])
-    student["date_of_birth"] = date
-    pre_process_stu_data(student)
+
+    pre_process_stu_data()

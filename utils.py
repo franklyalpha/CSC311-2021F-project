@@ -199,24 +199,32 @@ def sparse_matrix_predictions(data, matrix, threshold=0.5):
     return predictions
 
 
-def read_meta(root_dir="data/"):
+def read_stu_meta(root_dir="../data"):
     """
-    Returns reading result of student_meta.csv and question_meta.csv as a tuple.
+    Returns reading result of student_meta.csv as a tuple.
     """
     stu_meta_path = os.path.join(root_dir, "student_meta.csv")
-    ques_meta_path = os.path.join(root_dir, "question_meta.csv")
+
     stu_data = {
         "user_id": [],
         "gender": [],
         "date_of_birth": [],
         "premium_pupil": []
     }
+    return _read_stu_meta(stu_data, stu_meta_path)
+
+
+def read_que_meta(root_dir="../data"):
+    """
+    Returns reading result of question_meta.csv as a tuple.
+    """
+
+    ques_meta_path = os.path.join(root_dir, "question_meta.csv")
     que_data = {
         "question_id": [],
         "subject_id": []
     }
-    return (_read_stu_meta(stu_data, stu_meta_path),
-            _read_que_meta(que_data, ques_meta_path))
+    return _read_que_meta(que_data, ques_meta_path)
 
 
 def _read_stu_meta(stu_data, stu_meta_path):
