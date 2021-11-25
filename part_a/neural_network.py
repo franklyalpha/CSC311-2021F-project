@@ -99,7 +99,6 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
 
     # Tell PyTorch you are training the model.
     model.train()
-
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]

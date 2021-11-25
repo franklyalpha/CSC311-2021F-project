@@ -1,4 +1,5 @@
 from utils import *
+from data_pre_process import *
 from torch.autograd import Variable
 
 import torch.nn as nn
@@ -53,7 +54,6 @@ class AutoEncoder(nn.Module):
         self.i2 = nn.Linear(l, m)
         self.i3 = nn.Linear(m, l)
         self.i4 = nn.Linear(l, k)
-
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -225,10 +225,9 @@ def main():
     #####################################################################
 
 
-
-
 if __name__ == "__main__":
     # main()
     student, question = read_meta()
     date = normalize_date(student["date_of_birth"])
-    a = "alpha"
+    student["date_of_birth"] = date
+    pre_process_stu_data(student)
