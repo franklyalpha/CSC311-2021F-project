@@ -68,7 +68,7 @@ class AutoEncoder(nn.Module):
         i4_w_norm = torch.norm(self.i4.weight, 2) ** 2
         return g_w_norm + h_w_norm + i1_w_norm + i2_w_norm + i3_w_norm + i4_w_norm
 
-    def forward(self, inputs):
+    def forward(self, inputs, user_bias):
         """ Return a forward pass given inputs.
 
         :param inputs: user vector.
@@ -79,8 +79,8 @@ class AutoEncoder(nn.Module):
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
-        inner = self.g.forward(inputs)
-        inner_act = nn.Tanh()(inner)
+        inner = self.g.forward(inputs + user_bias)
+        inner_act = nn.Sigmoid()(inner)
         hidden1 = self.i1.forward(inner_act)
         # hidden1_act = nn.Sigmoid()(hidden1)
         hidden2 = self.i2.forward(hidden1)
@@ -96,7 +96,7 @@ class AutoEncoder(nn.Module):
         return out
 
 
-def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
+def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch, user_info):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
@@ -114,7 +114,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
 
     # Tell PyTorch you are training the model.
     model.train()
-
+    stu_bias_matrix = pre_process_stu_data(user_info)
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
@@ -137,9 +137,10 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
 
             inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
             target = inputs.clone()
-
+            user_bias = torch.from_numpy(stu_bias_matrix[user_id])
+            user_bias = user_bias.float()
             optimizer.zero_grad()
-            output = model(inputs)
+            output = model(inputs, user_bias)
 
             # Mask the target to only compute the gradient of valid entries.
             nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
@@ -163,7 +164,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             train_loss += loss.item()
             optimizer.step()
 
-        valid_acc = evaluate(model, zero_train_data, valid_data)
+        valid_acc = evaluate(model, zero_train_data, valid_data, stu_bias_matrix)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
     #####################################################################
@@ -171,7 +172,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     #####################################################################
 
 
-def evaluate(model, train_data, valid_data):
+def evaluate(model, train_data, valid_data, stu_bias_matrix):
     """ Evaluate the valid_data on the current model.
 
     :param model: Module
@@ -188,7 +189,9 @@ def evaluate(model, train_data, valid_data):
 
     for i, u in enumerate(valid_data["user_id"]):
         inputs = Variable(train_data[u]).unsqueeze(0)
-        output = model(inputs)
+        user_bias = torch.from_numpy(stu_bias_matrix[u])
+        user_bias = user_bias.float()
+        output = model(inputs, user_bias)
 
         guess = output[0][valid_data["question_id"][i]].item() >= 0.5
         if guess == valid_data["is_correct"][i]:
@@ -212,13 +215,13 @@ def main():
     l = 30
     m = 10
     model = AutoEncoder(train_matrix.shape[1], k, l, m)
-
+    user_data = fill_null_data_user()
     # Set optimization hyperparameters.
-    lr = 0.001
+    lr = 0.01
     num_epoch = 500
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,
-          valid_data, num_epoch)
+          valid_data, num_epoch, user_data)
 
     #####################################################################
     #                       END OF YOUR CODE                            #
@@ -226,6 +229,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
+    main()
 
-    pre_process_stu_data()
+
