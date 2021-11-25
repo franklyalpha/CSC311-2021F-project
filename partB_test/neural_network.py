@@ -8,7 +8,6 @@ import torch.utils.data
 
 import numpy as np
 import torch
-import cuda
 
 
 def load_data(base_path="../data"):
@@ -218,8 +217,6 @@ def main():
     lr = 0.001
     num_epoch = 500
     lamb = 0.0001
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    a = 'alpha'
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
 
@@ -228,6 +225,10 @@ def main():
     #####################################################################
 
 
-if __name__ == "__main__":
-    main()
 
+
+if __name__ == "__main__":
+    # main()
+    student, question = read_meta()
+    date = normalize_date(student["date_of_birth"])
+    a = "alpha"
