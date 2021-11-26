@@ -54,6 +54,7 @@ class AutoEncoder(nn.Module):
         self.i2 = nn.Linear(l, m)
         self.i3 = nn.Linear(m, l)
         self.i4 = nn.Linear(l, k)
+        self.user_b = torch.rand(k, num_question)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -79,8 +80,9 @@ class AutoEncoder(nn.Module):
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
+
         inner = self.g.forward(inputs + user_bias)
-        inner_act = nn.Sigmoid()(inner)
+        inner_act = nn.Tanh()(inner)
         hidden1 = self.i1.forward(inner_act)
         # hidden1_act = nn.Sigmoid()(hidden1)
         hidden2 = self.i2.forward(hidden1)
@@ -217,7 +219,7 @@ def main():
     model = AutoEncoder(train_matrix.shape[1], k, l, m)
     user_data = fill_null_data_user()
     # Set optimization hyperparameters.
-    lr = 0.01
+    lr = 0.001
     num_epoch = 500
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,

@@ -21,10 +21,12 @@ def pre_process_stu_data(student):
     train_matrix = np.array(load_train_sparse("../data").toarray())
     train_shape = train_matrix.shape
     stu_bias_matrix = np.empty((train_shape[0], train_shape[1]))
+    user_id_np = np.array(student["user_id"])
     for user_id in student["user_id"]:
         closest_user_index = find_similar_users(student, user_id)
-        segment_train = np.take(train_matrix, [closest_user_index], axis=0)
-        correctness = np.nanmean(segment_train, axis=1)
+        real_user = user_id_np[closest_user_index]
+        segment_train = np.take(train_matrix, real_user, axis=0)
+        correctness = np.nanmean(segment_train, axis=0)
     # if correctness is > 0.5, this means more students got this one correct.
     # thus subtract the value by 0.5, and then multiply by 2 gives ratio of answering
         student_bias = (correctness - 0.5) * 2
