@@ -189,36 +189,36 @@ def main():
     # code, report the validation and test accuracy.                    #
     #####################################################################
     lr = 0.01
-    iterations = 7
+    iterations = 20
 
     theta, beta, alpha, r, train_neg_log_likelihood, val_neg_log_likelihood = irt(
         train_data, val_data, lr, iterations)
 
-    # plt.plot(train_neg_log_likelihood, label="training");
-    # plt.plot(val_neg_log_likelihood, label="validation");
-    # plt.ylabel("Negative Log-Likelihood");
-    # plt.xlabel("Number of Iterations");
-    # plt.title("Negative Log-Likelihood for Training and Validation Data");
-    # plt.legend();
-    # plt.savefig("b.png");
-    # plt.show();
+    plt.plot(train_neg_log_likelihood, label="training");
+    plt.plot(val_neg_log_likelihood, label="validation");
+    plt.ylabel("Negative Log-Likelihood");
+    plt.xlabel("Number of Iterations");
+    plt.title("Negative Log-Likelihood for Training and Validation Data");
+    plt.legend();
+    plt.savefig("irt_nlld_vs_iter.png");
+    plt.show();
 
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
 
-    # part c
+    # # part c
     # val_score = evaluate(data=val_data, theta=theta, beta=beta, alpha=alpha, r=r)
     # test_score = evaluate(data=test_data, theta=theta, beta=beta, alpha=alpha, r=r)
     #
     # print("Validation Accuracy: ", val_score)
     # print("Test Accuracy: ", test_score)
-
-    #####################################################################
-    # TODO:                                                             #
-    # Implement part (d)                                                #
-    #####################################################################
-
+    #
+    # #####################################################################
+    # # TODO:                                                             #
+    # # Implement part (d)                                                #
+    # #####################################################################
+    #
     # # we have 1774 questions in total. Select three:
     # questions = [64, 734, 1356]
     # # we sort the theta for the sake a=of plotting
@@ -235,7 +235,7 @@ def main():
     # plt.title(
     #     "Probability of the Correct Response to Selected Questions vs. Theta")
     # plt.legend()
-    # plt.savefig("d.png")
+    # plt.savefig("irt_p_vs_theta.png")
     # plt.show()
 
 #####################################################################
