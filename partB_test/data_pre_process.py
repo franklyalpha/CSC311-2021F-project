@@ -14,21 +14,45 @@ predict by threshold: will apply a bias of each question to a ratio of correctne
 '''
 
 
-def pre_process_stu_data():
-    student = fill_null_data_user()
-    closest_user_index = find_similar_users(student, 32)
-    train_matrix = load_train_sparse("../data").toarray()
-    segment_train = np.take(train_matrix, [closest_user_index], axis=0)
-    correctness = np.nanmean(segment_train, axis=1)
+def pre_process_stu_data(student):
+    """
+    return a bias matrix where each row represents the student's bias regarding each question's answer
+
+    """
+    train_matrix = np.array(load_train_sparse("../data").toarray())
+    train_shape = train_matrix.shape
+    stu_bias_matrix = np.empty((train_shape[0], train_shape[1]))
+    user_id_np = np.array(student["user_id"])
+    for user_id in student["user_id"]:
+        closest_user_index = find_similar_users(student, user_id)
+        real_user = user_id_np[closest_user_index]
+        segment_train = np.take(train_matrix, real_user, axis=0)
+        correctness = np.nanmean(segment_train, axis=0)
     # if correctness is > 0.5, this means more students got this one correct.
     # thus subtract the value by 0.5, and then multiply by 2 gives ratio of answering
+        student_bias = (correctness - 0.5) * 2
+        student_bias = np.nan_to_num(student_bias)
+        stu_bias_matrix[user_id, :] = student_bias
+    return stu_bias_matrix
 
 
 def fill_null_data_user():
-    # load data
+    """
+    return a dictionary of students containing:
+    an "user_id" array
+    a "gender" array
+    a "date_of_birth" array
+    a "premium_pupil" array
+    where each array's element corresponds to the user's information at same position
+    of "user_id" array.
+
+
+    """
+
     student = read_stu_meta()
-    # normalize date of birth
-    student["date_of_birth"] = normalize_date(student["date_of_birth"])
+
+    date = normalize_date(student["date_of_birth"])
+    student["date_of_birth"] = date
     # set unspecified gender as 1.5
     gender_list = student["gender"]
     for index in range(len(gender_list)):
@@ -49,6 +73,9 @@ def fill_null_data_user():
 
 
 def find_similar_users(user_dict, input_user_id):
+    """
+    return 20 user id having the most similar background with "input_user_id"'s information.
+    """
     # formula for determining relative distance:
     # value of input subtract all data (regardless of whether itself is chosen) and then squared
     users_id = user_dict["user_id"]
