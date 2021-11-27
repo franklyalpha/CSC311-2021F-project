@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 
-def load_data(base_path="./data"):
+def load_data(base_path="../data"):
     """ Load the data in PyTorch Tensor.
 
     :return: (zero_train_matrix, train_data, valid_data, test_data)
@@ -23,7 +23,6 @@ def load_data(base_path="./data"):
         test_data: A dictionary {user_id: list,
         user_id: list, is_correct: list}
     """
-    train_data = load_train_csv(base_path)
     train_matrix = load_train_sparse(base_path).toarray()
     valid_data = load_valid_csv(base_path)
     test_data = load_public_test_csv(base_path)
@@ -35,7 +34,7 @@ def load_data(base_path="./data"):
     zero_train_matrix = torch.FloatTensor(zero_train_matrix)
     train_matrix = torch.FloatTensor(train_matrix)
 
-    return zero_train_matrix, train_matrix, train_data, valid_data, test_data
+    return zero_train_matrix, train_matrix, valid_data, test_data
 
 
 class AutoEncoder(nn.Module):
@@ -82,15 +81,15 @@ class AutoEncoder(nn.Module):
         return out
 
 
-def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_data, num_epoch):
+def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
     :param model: Module
     :param lr: float
     :param lamb: float -> for regularization
-    :param train_matrix: 2D FloatTensor
-    :param zero_train_matrix: 2D FloatTensor
+    :param train_data: 2D FloatTensor
+    :param zero_train_data: 2D FloatTensor
     :param valid_data: Dict
     :param num_epoch: int
     :return: None
@@ -102,28 +101,28 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
     model.train()
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
-    num_student = train_matrix.shape[0]
+    num_student = train_data.shape[0]
     loss_recording = []
     valid_acc_record = []
     epoch_record = []
+    highest_valid_acc = 0
     for epoch in range(0, num_epoch):
         train_loss = 0.
         # norm = model.get_weight_norm()
         # denom = 2
         for user_id in range(num_student):
 
-            inputs = Variable(zero_train_matrix[user_id]).unsqueeze(0)
+            inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
             target = inputs.clone()
 
             optimizer.zero_grad()
             output = model(inputs)
 
             # Mask the target to only compute the gradient of valid entries.
-            nan_mask = np.isnan(train_matrix[user_id].unsqueeze(0).numpy())
+            nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
             norm = model.get_weight_norm()
-            # denom = 2 * num_student
             denom = 2
             loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
             # loss = torch.sum((output - target) ** 2.)
@@ -134,16 +133,15 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
             train_loss += loss.item()
             optimizer.step()
 
-        train_acc = evaluate(model, zero_train_matrix, train_data)
-        valid_acc = evaluate(model, zero_train_matrix, valid_data)
-        print("Epoch: {} \tTraining Cost: {:.6f}\t "
-              "Train Acc: {}".format(epoch, train_loss, train_acc))
+        valid_acc = evaluate(model, zero_train_data, valid_data)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
         loss_recording.append(train_loss)
         valid_acc_record.append(valid_acc)
         epoch_record.append(epoch)
+        highest_valid_acc = max(highest_valid_acc, valid_acc)
     plot(epoch_record, loss_recording, valid_acc_record)
+    return highest_valid_acc
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -189,7 +187,7 @@ def evaluate(model, train_data, valid_data):
 
 
 def main():
-    zero_train_matrix, train_matrix, train_data, valid_data, test_data = load_data()
+    zero_train_matrix, train_matrix, valid_data, test_data = load_data()
 
     #####################################################################
     # TODO:                                                             #
@@ -197,16 +195,52 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
+    # k_list = [10, 50, 100, 200, 500]
+    # k_accuracy = []
+    # for k in k_list:
+    #     model = AutoEncoder(train_matrix.shape[1], k)
+    #
+    # # Set optimization hyperparameters.
+    #     lr = 0.01
+    #     num_epoch = 50
+    #     lamb = 0.1
+    #
+    #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
+    #         valid_data, num_epoch)
+    #     test_result = evaluate(model, zero_train_matrix, test_data)
+    #     print("test accuracy: \n" + str(test_result))
+    #     k_accuracy.append(highest_acc)
+    # best_k = k_accuracy.index(max(k_accuracy))
+    # print("will use this k for further procedure due to its highest accuracy:" + str(best_k))4
+
+    # lambda_list = [1, 0.1, 0.01, 0.001]
+    # lambda_accuracy = []
+    # for lamb in lambda_list:
+    #     k = 50
+    #     model = AutoEncoder(train_matrix.shape[1], k)
+    #
+    # # Set optimization hyperparameters.
+    #     lr = 0.01
+    #     num_epoch = 50
+    #
+    #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
+    #         valid_data, num_epoch)
+    #     test_result = evaluate(model, zero_train_matrix, test_data)
+    #     print("test accuracy: \n" + str(test_result))
+    #     lambda_accuracy.append(highest_acc)
+    # best_lambda = lambda_accuracy.index(max(lambda_accuracy))
+    # print("will use this lambda for further procedure due to its highest accuracy:" + str(best_lambda))
+
     k = 50
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 50
-    lamb = 0.005
+    num_epoch = 40
+    lamb = 0.001
 
-    train(model, lr, lamb, train_matrix, zero_train_matrix, train_data,
-          valid_data, num_epoch)
+    train(model, lr, lamb, train_matrix, zero_train_matrix,
+        valid_data, num_epoch)
     test_result = evaluate(model, zero_train_matrix, test_data)
     print("test accuracy: \n" + str(test_result))
     #####################################################################

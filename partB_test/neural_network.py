@@ -84,7 +84,7 @@ class AutoEncoder(nn.Module):
         inner = self.g.forward(inputs + user_bias)
         inner_act = nn.Tanh()(inner)
         hidden1 = self.i1.forward(inner_act)
-        # hidden1_act = nn.Sigmoid()(hidden1)
+        #hidden1_act = nn.Sigmoid()(hidden1)
         hidden2 = self.i2.forward(hidden1)
         hidden2_act = nn.Sigmoid()(hidden2)
         hidden3 = self.i3.forward(hidden2_act)
@@ -213,8 +213,8 @@ def main():
     #####################################################################
     # Set model hyperparameters.
 
-    k = 100
-    l = 30
+    k = 200
+    l = 50
     m = 10
     model = AutoEncoder(train_matrix.shape[1], k, l, m)
     user_data = fill_null_data_user()
