@@ -1,5 +1,6 @@
 import numpy as np
 from utils import *
+import pdb
 
 # the idea of classifying data for similar users:
 '''
@@ -64,3 +65,22 @@ def find_similar_users(user_dict, input_user_id):
     # now find out 10 closest users from here
     top_k_index = np.argsort(final_distance)
     return top_k_index[:20]
+
+def create_stu_meta_matrix():
+    """Create a 2D numpy array of student meta data that includes already 
+    normalized student information, with the rows of the matrix sorted based on
+    student ID in increasing order. 
+    :return: 2D numpy array of student meta data sorted in increasing order of
+            student ID.
+    """
+    # read in normalized student data
+    stu_dict = fill_null_data_user()
+    # create a 2D np array of student data
+    stu_matrix = np.column_stack((stu_dict["user_id"], stu_dict["gender"], \
+        stu_dict["date_of_birth"], stu_dict["premium_pupil"]))
+    # sort the np array by student ID in increasing order
+    stu_matrix_sorted = stu_matrix[np.argsort(stu_matrix[:, 0])]
+    return stu_matrix_sorted
+    
+if __name__ == "__main__":
+    create_student_matrix()
