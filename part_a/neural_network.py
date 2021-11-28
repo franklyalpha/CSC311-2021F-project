@@ -240,7 +240,7 @@ def main():
     lamb = 0.001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
-        valid_data, num_epoch)
+          valid_data, num_epoch)
     test_result = evaluate(model, zero_train_matrix, test_data)
     print("test accuracy: \n" + str(test_result))
     #####################################################################
