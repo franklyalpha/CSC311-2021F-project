@@ -21,10 +21,11 @@ def load_data(base_path="./data"):
             question_id: list, is_correct: list}
     """
     train_matrix = load_train_sparse(base_path).toarray()
+    train_data = load_train_csv(base_path)
     valid_data = load_valid_csv(base_path)
     test_data = load_public_test_csv(base_path)
     
-    return train_matrix, valid_data, test_data
+    return train_matrix, train_data, valid_data, test_data
 
 def bootstrap(train_matrix, seed):
     """Return a bootstrap sample of train_matrix. 
@@ -39,7 +40,7 @@ def bootstrap(train_matrix, seed):
     sample = train_matrix[sample_indices]
     return sample
 
-def train(setting, train_matrix, valid_data, seed):
+def train(setting, train_matrix, train_data, valid_data, seed):
     """Train a neural network model with hyperparameters in setting on a 
     bootstrap sample of train_matrix, and return the trained model. 
 
@@ -62,10 +63,10 @@ def train(setting, train_matrix, valid_data, seed):
     # train model and generate predictions
     model = neural_network.AutoEncoder(bootstrap_train.shape[1], setting["k"])
     neural_network.train(model, setting["lr"], setting["lamb"], bootstrap_train, 
-          zero_bootstrap_train, valid_data, setting["num_epoch"])
+          zero_bootstrap_train, train_data, valid_data, setting["num_epoch"])
     return model
 
-def bagging_train(settings, train_matrix, valid_data):
+def bagging_train(settings, train_matrix, train_data, valid_data):
     """Train a neural network model for each of the hyperparameter setting 
     in settings on bootstrapped sample train_matrix. 
 
@@ -78,7 +79,7 @@ def bagging_train(settings, train_matrix, valid_data):
     """
     models = []
     for count, setting in enumerate(settings):
-        model = train(setting, train_matrix, valid_data, count)
+        model = train(setting, train_matrix, train_data, valid_data, count)
         models.append(model)
     return models
 
@@ -155,14 +156,44 @@ def get_accuracy(predictions, valid_data):
 
 def main():
     # Load data
-    train_matrix, valid_data, test_data = load_data()
+    train_matrix, train_data, valid_data, test_data = load_data()
+    
+    # fill in missing entries with 0
+    zero_train_matrix = train_matrix.copy()
+    zero_train_matrix[np.isnan(train_matrix)] = 0
+    # change to Float Tensor for PyTorch
+    zero_train_matrix = torch.FloatTensor(zero_train_matrix)
+    
+    seeds = [0, 1, 2]
+    settings = [{"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
+                {"k": 100, "lr": 0.01, "lamb": 0.001, "num_epoch": 50},
+                {"k": 10, "lr": 0.01, "lamb": 0.01, "num_epoch": 30}]
+    accuracies = []
+    # for seed in seeds:
+    #     for setting in settings:
+    #         model = train(setting, train_matrix, train_data, valid_data, seed)
+    #         valid_accuracy = neural_network.evaluate(model, zero_train_matrix, valid_data)
+    #         accuracies.append(valid_accuracy)
+    
+    # i = 0
+    # for seed in range(len(seeds)):
+    #     for setting in range(len(settings)):
+    #         print(f"Validation accuracy for sample {seed + 1} & setting {setting + 1}:\
+    #             {accuracies[i]}")
+    #         i += 1
+    
+    # We get that {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40} gives 
+    # the best validation accuracy for all 3 bootstrap samples
     
     # Specify model settings
-    settings = [{"k": 50, "lr": 0.01, "lamb": 0.1, "num_epoch": 50},
-                {"k": 45, "lr": 0.01, "lamb": 0.1, "num_epoch": 45},
-                {"k": 55, "lr": 0.01, "lamb": 0.1, "num_epoch": 55}]
+    # settings = [{"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
+    #             {"k": 45, "lr": 0.01, "lamb": 0.001, "num_epoch": 35},
+    #             {"k": 55, "lr": 0.01, "lamb": 0.001, "num_epoch": 45}]
+    settings = [{"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
+                {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
+                {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40}]
     
-    models = bagging_train(settings, train_matrix, valid_data)
+    models = bagging_train(settings, train_matrix, train_data, valid_data)
     print("---Validation accuracy---")
     bagging_evaluate(models, train_matrix, valid_data)
     print("---Test accuracy---")
