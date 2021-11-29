@@ -83,7 +83,6 @@ class AutoEncoder(nn.Module):
         inner = self.g.forward(inputs)
         inner_act = nn.ReLU()(inner)
         hidden1 = self.encode1.forward(inner_act)
-        #hidden1_act = nn.Sigmoid()(hidden1)
         hidden2 = self.encode2.forward(hidden1)
         hidden2_act = nn.Sigmoid()(hidden2)
         hidden3 = self.decode1.forward(hidden2_act)
@@ -118,21 +117,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
-    valid_acc = 0.
-    pass1, pass2 = False, False
     for epoch in range(0, num_epoch):
         train_loss = 0.
-        # loss = None
-        # if (valid_acc >= 0.70) and not pass1:
-        #     new_lr = lr / 10
-        #     optimizer = optim.SGD(model.parameters(), lr=new_lr)
-        #     pass1 = True
-        # if (valid_acc >= 0.697) and not pass2:
-        #     new_lr = lr / 5
-        #     optimizer = optim.SGD(model.parameters(), lr=new_lr)
-        #     pass2 = True
-        # norm = model.get_weight_norm()
-        # denom = 2
         for user_id in range(num_student):
 
             inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
@@ -147,16 +133,6 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             norm = model.get_weight_norm()
             denom = 2
             loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-
-            # loss = torch.sum((output - target) ** 2.)
-            # setting regularization at last to reduce final model's extreme values
-            # requiring a large lambda
-            # this method doesn't work, result in error
-            # if user_id == num_student - 1:
-            #     loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # else:
-            #     loss = torch.sum((output - target) ** 2.)
-
             loss.backward()
 
             train_loss += loss.item()
