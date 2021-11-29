@@ -50,10 +50,10 @@ class AutoEncoder(nn.Module):
         # Define linear functions.
         self.g = nn.Linear(num_question, k)
         self.h = nn.Linear(k, num_question)
-        self.i1 = nn.Linear(k, l)
-        self.i2 = nn.Linear(l, m)
-        self.i3 = nn.Linear(m, l)
-        self.i4 = nn.Linear(l, k)
+        self.encode1 = nn.Linear(k, l)
+        self.encode2 = nn.Linear(l, m)
+        self.decode1 = nn.Linear(m, l)
+        self.decode2 = nn.Linear(l, k)
         self.user_b = torch.rand(k, num_question)
 
     def get_weight_norm(self):
@@ -63,11 +63,11 @@ class AutoEncoder(nn.Module):
         """
         g_w_norm = torch.norm(self.g.weight, 2) ** 2
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
-        i1_w_norm = torch.norm(self.i1.weight, 2) ** 2
-        i2_w_norm = torch.norm(self.i2.weight, 2) ** 2
-        i3_w_norm = torch.norm(self.i3.weight, 2) ** 2
-        i4_w_norm = torch.norm(self.i4.weight, 2) ** 2
-        return g_w_norm + h_w_norm + i1_w_norm + i2_w_norm + i3_w_norm + i4_w_norm
+        en1_w_norm = torch.norm(self.encode1.weight, 2) ** 2
+        en2_w_norm = torch.norm(self.encode2.weight, 2) ** 2
+        de1_w_norm = torch.norm(self.decode1.weight, 2) ** 2
+        de2_w_norm = torch.norm(self.decode2.weight, 2) ** 2
+        return g_w_norm + h_w_norm + en1_w_norm + en2_w_norm + de1_w_norm + de2_w_norm
 
     def forward(self, inputs):
         """ Return a forward pass given inputs.
@@ -82,13 +82,13 @@ class AutoEncoder(nn.Module):
         #####################################################################
 
         inner = self.g.forward(inputs)
-        inner_act = nn.Tanh()(inner)
-        hidden1 = self.i1.forward(inner_act)
+        inner_act = nn.ReLU()(inner)
+        hidden1 = self.encode1.forward(inner_act)
         #hidden1_act = nn.Sigmoid()(hidden1)
-        hidden2 = self.i2.forward(hidden1)
+        hidden2 = self.encode2.forward(hidden1)
         hidden2_act = nn.Sigmoid()(hidden2)
-        hidden3 = self.i3.forward(hidden2_act)
-        hidden4 = self.i4.forward(hidden3)
+        hidden3 = self.decode1.forward(hidden2_act)
+        hidden4 = self.decode2.forward(hidden3)
         outer = self.h.forward(hidden4)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
@@ -214,7 +214,7 @@ def main():
     model = AutoEncoder(train_matrix.shape[1], k, l, m)
 
     # Set optimization hyperparameters.
-    lr = 0.01
+    lr = 0.001
     num_epoch = 500
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,
