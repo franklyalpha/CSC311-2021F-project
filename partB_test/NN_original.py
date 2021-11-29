@@ -182,10 +182,10 @@ def main():
     #####################################################################
     # Set model hyperparameters.
 
-    k = 100
-    l = 30
-    m = 10
-    model = AutoEncoder(train_matrix.shape[1], k, l, m)
+    code1 = 100
+    code2 = 30
+    code_vect = 10
+    model = AutoEncoder(train_matrix.shape[1], code1, code2, code_vect)
 
     # Set optimization hyperparameters.
     lr = 0.001
