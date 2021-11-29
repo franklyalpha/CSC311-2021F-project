@@ -8,9 +8,12 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import pdb
 
+"""Corrupt known data in the sparse matrix and apply different weighting. 
+"""
 
-def load_data(base_path="../data"):
+def load_data(base_path="./data"):
     """ Load the data in PyTorch Tensor.
 
     :return: (zero_train_matrix, train_data, valid_data, test_data)
@@ -23,20 +26,46 @@ def load_data(base_path="../data"):
         test_data: A dictionary {user_id: list,
         user_id: list, is_correct: list}
     """
+    train_data = load_train_csv(base_path)
     train_matrix = load_train_sparse(base_path).toarray()
     valid_data = load_valid_csv(base_path)
     test_data = load_public_test_csv(base_path)
 
+    return train_matrix, train_data, valid_data, test_data
+
+def mask_data(train_matrix, percent):
+    masked_train_matrix = np.copy(train_matrix)
+    mask_indices_lst = []
+    for u in range(train_matrix.shape[0]):
+        # Find indices of not-null values in row u of sparse train_matrix
+        user_row = train_matrix[u]
+        # not_null_indices = user_row[np.argwhere(~np.isnan(user_row)).flatten()]
+        not_null_indices = np.argwhere(~np.isnan(user_row)).flatten()
+        rng = np.random.default_rng(u) # set seed to u
+        mask_size = int(percent*len(not_null_indices))
+        mask_indices = rng.choice(not_null_indices, size=mask_size, replace=False) 
+        masked_train_matrix[u][mask_indices] = np.NAN
+        mask_indices_lst.append(mask_indices)
+        
+    return masked_train_matrix, mask_indices_lst
+
+def preprocess_data(train_matrix, masked_train_matrix):
     zero_train_matrix = train_matrix.copy()
     # Fill in the missing entries to 0.
     zero_train_matrix[np.isnan(train_matrix)] = 0
     # Change to Float Tensor for PyTorch.
     zero_train_matrix = torch.FloatTensor(zero_train_matrix)
+    
+    # Fill in the missing entries to 0.
+    zero_masked_train_matrix = masked_train_matrix.copy()
+    zero_masked_train_matrix[np.isnan(masked_train_matrix)] = 0
+    # Change to Float Tensor for PyTorch.
+    zero_masked_train_matrix = torch.FloatTensor(zero_masked_train_matrix)
+
     train_matrix = torch.FloatTensor(train_matrix)
-
-    return zero_train_matrix, train_matrix, valid_data, test_data
-
-
+    return zero_train_matrix, zero_masked_train_matrix, train_matrix
+     
+    
 class AutoEncoder(nn.Module):
     def __init__(self, num_question, k=100):
         """ Initialize a class AutoEncoder.
@@ -81,7 +110,9 @@ class AutoEncoder(nn.Module):
         return out
 
 
-def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_data, num_epoch):
+def train(model, lr, lamb, train_matrix, zero_train_matrix, 
+          zero_masked_train_matrix, mask_indices_lst,
+          train_data, valid_data, num_epoch, alpha, beta):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
@@ -105,15 +136,11 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
     loss_recording = []
     valid_acc_record = []
     epoch_record = []
-    highest_valid_acc = 0
     for epoch in range(0, num_epoch):
         train_loss = 0.
-        # norm = model.get_weight_norm()
-        # denom = 2
         for user_id in range(num_student):
-
-            inputs = Variable(zero_train_matrix[user_id]).unsqueeze(0)
-            target = inputs.clone()
+            inputs = Variable(zero_masked_train_matrix[user_id]).unsqueeze(0)
+            target = Variable(zero_train_matrix[user_id]).unsqueeze(0)
 
             optimizer.zero_grad()
             output = model(inputs)
@@ -124,10 +151,19 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
 
             norm = model.get_weight_norm()
             denom = 2
-            loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # loss = torch.sum((output - target) ** 2.)
-            # setting regularization at last to reduce final model's
-            # extreme values
+            mask_indices = mask_indices_lst[user_id]
+            # not_mask_indices = torch.ones(output[0].numel(), dtype=torch.bool)
+            # not_mask_indices[mask_indices] = False
+            all_indices = np.array([x for x in range(train_matrix.shape[1])])
+            not_mask_indices = np.setdiff1d(all_indices, mask_indices)
+
+            loss = alpha*torch.sum(
+                        (output[0][mask_indices] - target[0][mask_indices]) ** 2.) + \
+                    beta*torch.sum(
+                        (output[0][not_mask_indices] - target[0][not_mask_indices])**2.) + \
+                    (lamb / denom) * norm
+
+            # loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
             loss.backward()
 
             train_loss += loss.item()
@@ -142,9 +178,7 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
         loss_recording.append(train_loss)
         valid_acc_record.append(valid_acc)
         epoch_record.append(epoch)
-        highest_valid_acc = max(highest_valid_acc, valid_acc)
     plot(epoch_record, loss_recording, valid_acc_record)
-    return highest_valid_acc
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -190,7 +224,12 @@ def evaluate(model, train_data, valid_data):
 
 
 def main():
-    zero_train_matrix, train_matrix, valid_data, test_data = load_data()
+    train_matrix, train_data, valid_data, test_data = load_data()
+    percent = 0.05
+    masked_train_matrix, mask_indices_lst = mask_data(train_matrix, percent)
+    # Change to float tensor for PyTorch
+    zero_train_matrix, zero_masked_train_matrix, train_matrix = preprocess_data(
+        train_matrix, masked_train_matrix)
 
     #####################################################################
     # TODO:                                                             #
@@ -198,52 +237,19 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    # k_list = [10, 50, 100, 200, 500]
-    # k_accuracy = []
-    # for k in k_list:
-    #     model = AutoEncoder(train_matrix.shape[1], k)
-    #
-    # # Set optimization hyperparameters.
-    #     lr = 0.01
-    #     num_epoch = 50
-    #     lamb = 0.1
-    #
-    #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
-    #         valid_data, num_epoch)
-    #     test_result = evaluate(model, zero_train_matrix, test_data)
-    #     print("test accuracy: \n" + str(test_result))
-    #     k_accuracy.append(highest_acc)
-    # best_k = k_accuracy.index(max(k_accuracy))
-    # print("will use this k for further procedure due to its highest accuracy:" + str(best_k))4
-
-    # lambda_list = [1, 0.1, 0.01, 0.001]
-    # lambda_accuracy = []
-    # for lamb in lambda_list:
-    #     k = 50
-    #     model = AutoEncoder(train_matrix.shape[1], k)
-    #
-    # # Set optimization hyperparameters.
-    #     lr = 0.01
-    #     num_epoch = 50
-    #
-    #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
-    #         valid_data, num_epoch)
-    #     test_result = evaluate(model, zero_train_matrix, test_data)
-    #     print("test accuracy: \n" + str(test_result))
-    #     lambda_accuracy.append(highest_acc)
-    # best_lambda = lambda_accuracy.index(max(lambda_accuracy))
-    # print("will use this lambda for further procedure due to its highest accuracy:" + str(best_lambda))
-
-    k = 50
+    k = 100
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = 0.001
-    num_epoch = 400
-    lamb = 0.0001
+    lr = 0.01
+    num_epoch = 20
+    lamb = 0 #0.005
+    alpha = 2
+    beta = 1
 
-    train(model, lr, lamb, train_matrix, zero_train_matrix,
-          valid_data, num_epoch)
+    train(model, lr, lamb, train_matrix, zero_train_matrix, 
+          zero_masked_train_matrix, mask_indices_lst,
+          train_data, valid_data, num_epoch, alpha, beta)
     test_result = evaluate(model, zero_train_matrix, test_data)
     print("test accuracy: \n" + str(test_result))
     #####################################################################

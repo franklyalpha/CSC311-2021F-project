@@ -134,9 +134,9 @@ def irt(train_data, val_data, lr, iterations):
 
 def evaluate(data, theta, beta):
     """ Evaluate the model given data and return the accuracy.
+    
     :param data: A dictionary {user_id: list, question_id: list,
     is_correct: list}
-
     :param theta: Vector
     :param beta: Vector
     :return: float
