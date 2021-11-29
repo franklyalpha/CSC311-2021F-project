@@ -1,5 +1,4 @@
 from utils import *
-from data_pre_process import *
 from torch.autograd import Variable
 
 import torch.nn as nn
@@ -215,7 +214,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.001
-    num_epoch = 500
+    num_epoch = 140
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
