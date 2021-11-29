@@ -38,7 +38,7 @@ def load_data(base_path="../data"):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, num_question, k, l, m):
+    def __init__(self, num_question, code1, code2, code_vect):
         """ Initialize a class AutoEncoder.
 
         :param num_question: int
@@ -47,13 +47,12 @@ class AutoEncoder(nn.Module):
         super(AutoEncoder, self).__init__()
 
         # Define linear functions.
-        self.g = nn.Linear(num_question, k)
-        self.h = nn.Linear(k, num_question)
-        self.encode1 = nn.Linear(k, l)
-        self.encode2 = nn.Linear(l, m)
-        self.decode1 = nn.Linear(m, l)
-        self.decode2 = nn.Linear(l, k)
-        self.user_b = torch.rand(k, num_question)
+        self.g = nn.Linear(num_question, code1)
+        self.encode1 = nn.Linear(code1, code2)
+        self.encode2 = nn.Linear(code2, code_vect)
+        self.decode1 = nn.Linear(code_vect, code2)
+        self.decode2 = nn.Linear(code2, code1)
+        self.h = nn.Linear(code1, num_question)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
