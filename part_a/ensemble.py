@@ -169,6 +169,10 @@ def main():
                 {"k": 100, "lr": 0.01, "lamb": 0.001, "num_epoch": 50},
                 {"k": 10, "lr": 0.01, "lamb": 0.01, "num_epoch": 30}]
     accuracies = []
+    ##########################################################################
+    # Code for training base model on each of the 3 bootstrap samples to
+    # select the hyperparameter setting with the highest validation accuracy:
+    ##########################################################################
     # for seed in seeds:
     #     for setting in settings:
     #         model = train(setting, train_matrix, train_data, valid_data, seed)
@@ -182,13 +186,10 @@ def main():
     #             {accuracies[i]}")
     #         i += 1
     
-    # We get that {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40} gives 
+    # We got that {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40} gives 
     # the best validation accuracy for all 3 bootstrap samples
     
     # Specify model settings
-    # settings = [{"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
-    #             {"k": 45, "lr": 0.01, "lamb": 0.001, "num_epoch": 35},
-    #             {"k": 55, "lr": 0.01, "lamb": 0.001, "num_epoch": 45}]
     settings = [{"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
                 {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40},
                 {"k": 50, "lr": 0.01, "lamb": 0.001, "num_epoch": 40}]
