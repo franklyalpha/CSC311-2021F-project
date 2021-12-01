@@ -38,7 +38,7 @@ def load_data(base_path="../data"):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, num_question, code1, code2, code3, code_vect):
+    def __init__(self, num_question, code1, code2, code_vect):
         """ Initialize a class AutoEncoder.
 
         :param num_question: int
@@ -49,11 +49,9 @@ class AutoEncoder(nn.Module):
         # Define linear functions.
         self.g = nn.Linear(num_question, code1)
         self.encode1 = nn.Linear(code1, code2)
-        self.encode2 = nn.Linear(code2, code3)
-        self.encode3 = nn.Linear(code3, code_vect)
-        self.decode1 = nn.Linear(code_vect, code3)
-        self.decode2 = nn.Linear(code3, code2)
-        self.decode3 = nn.Linear(code2, code1)
+        self.encode2 = nn.Linear(code2, code_vect)
+        self.decode1 = nn.Linear(code_vect, code2)
+        self.decode2 = nn.Linear(code2, code1)
         self.h = nn.Linear(code1, num_question)
 
     def get_weight_norm(self):
@@ -65,11 +63,9 @@ class AutoEncoder(nn.Module):
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
         en1_w_norm = torch.norm(self.encode1.weight, 2) ** 2
         en2_w_norm = torch.norm(self.encode2.weight, 2) ** 2
-        en3_n = torch.norm(self.encode3.weight, 2) **2
         de1_w_norm = torch.norm(self.decode1.weight, 2) ** 2
         de2_w_norm = torch.norm(self.decode2.weight, 2) ** 2
-        de3_n = torch.norm(self.decode3.weight, 2) ** 2
-        return g_w_norm + h_w_norm + en1_w_norm + en2_w_norm + de1_w_norm + de2_w_norm + en3_n + de3_n
+        return g_w_norm + h_w_norm + en1_w_norm + en2_w_norm + de1_w_norm + de2_w_norm
 
     def forward(self, inputs):
         """ Return a forward pass given inputs.
@@ -87,13 +83,10 @@ class AutoEncoder(nn.Module):
         inner_act = nn.Tanh()(inner)
         hidden1 = self.encode1.forward(inner_act)
         hidden2 = self.encode2.forward(hidden1)
-
-        hidden3 = self.encode3.forward(hidden2)
-        hidden3_act = nn.Sigmoid()(hidden3)
-        hidden4 = self.decode1.forward(hidden3_act)
-        hidden5 = self.decode2.forward(hidden4)
-        hidden6 = self.decode3.forward(hidden5)
-        outer = self.h.forward(hidden6)
+        hidden2_act = nn.Sigmoid()(hidden2)
+        hidden3 = self.decode1.forward(hidden2_act)
+        hidden4 = self.decode2.forward(hidden3)
+        outer = self.h.forward(hidden4)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
         #####################################################################
@@ -116,6 +109,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :return: None
     """
     # TODO: Add a regularizer to the cost function.
+    # discuss possibilities: 1: adding the regularization term only once
 
     # Tell PyTorch you are training the model.
     model.train()
@@ -188,11 +182,10 @@ def main():
     #####################################################################
     # Set model hyperparameters.
 
-    code1 = 150
-    code2 = 80
-    code3 = 30
+    code1 = 100
+    code2 = 30
     code_vect = 10
-    model = AutoEncoder(train_matrix.shape[1], code1, code2, code3, code_vect)
+    model = AutoEncoder(train_matrix.shape[1], code1, code2, code_vect)
 
     # Set optimization hyperparameters.
     lr = 0.001
