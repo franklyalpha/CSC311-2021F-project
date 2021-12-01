@@ -134,7 +134,7 @@ def irt(train_data, val_data, lr, iterations):
 
 def evaluate(data, theta, beta):
     """ Evaluate the model given data and return the accuracy.
-    
+
     :param data: A dictionary {user_id: list, question_id: list,
     is_correct: list}
     :param theta: Vector
@@ -169,14 +169,14 @@ def main():
     theta, beta, train_neg_log_likelihood, val_neg_log_likelihood = irt(
         train_data, val_data, lr, iterations)
 
-    plt.plot(train_neg_log_likelihood, label="training");
-    plt.plot(val_neg_log_likelihood, label="validation");
-    plt.ylabel("Negative Log-Likelihood");
-    plt.xlabel("Number of Iterations");
-    plt.title("Negative Log-Likelihood for Training and Validation Data");
-    plt.legend();
-    plt.savefig("Q2b.png");
-    plt.show();
+    plt.plot(train_neg_log_likelihood, label="training")
+    plt.plot(val_neg_log_likelihood, label="validation")
+    plt.ylabel("Negative Log-Likelihood")
+    plt.xlabel("Number of Iterations")
+    plt.title("Negative Log-Likelihood for Training and Validation Data")
+    plt.legend()
+    plt.savefig("Q2b.png")
+    plt.show()
 
     #####################################################################
     #                       END OF YOUR CODE                            #
