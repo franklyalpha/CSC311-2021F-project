@@ -126,9 +126,6 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
             norm = model.get_weight_norm()
             denom = 2
             loss = torch.sum((output - target) ** 2.) + (lamb / denom) * norm
-            # loss = torch.sum((output - target) ** 2.)
-            # setting regularization at last to reduce final model's
-            # extreme values
             loss.backward()
 
             train_loss += loss.item()
@@ -206,7 +203,7 @@ def main():
     #
     # # Set optimization hyperparameters.
     #     lr = 0.01
-    #     num_epoch = 50
+    #     num_epoch = 200
     #     lamb = 0.1
     #
     #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
@@ -215,7 +212,7 @@ def main():
     #     print("test accuracy: \n" + str(test_result))
     #     k_accuracy.append(highest_acc)
     # best_k = k_accuracy.index(max(k_accuracy))
-    # print("will use this k for further procedure due to its highest accuracy:" + str(best_k))4
+    # print("will use this k for further procedure due to its highest accuracy:" + str(best_k))
 
     # lambda_list = [1, 0.1, 0.01, 0.001]
     # lambda_accuracy = []
