@@ -26,6 +26,7 @@ def load_data(base_path="../data"):
     train_matrix = load_train_sparse(base_path).toarray()
     valid_data = load_valid_csv(base_path)
     test_data = load_public_test_csv(base_path)
+    train_data = load_train_csv(base_path)
 
     zero_train_matrix = train_matrix.copy()
     # Fill in the missing entries to 0.
@@ -34,7 +35,7 @@ def load_data(base_path="../data"):
     zero_train_matrix = torch.FloatTensor(zero_train_matrix)
     train_matrix = torch.FloatTensor(train_matrix)
 
-    return zero_train_matrix, train_matrix, valid_data, test_data
+    return zero_train_matrix, train_matrix, train_data, valid_data, test_data
 
 
 class AutoEncoder(nn.Module):
@@ -190,7 +191,7 @@ def evaluate(model, train_data, valid_data):
 
 
 def main():
-    zero_train_matrix, train_matrix, valid_data, test_data = load_data()
+    zero_train_matrix, train_matrix, train_data, valid_data, test_data = load_data()
 
     #####################################################################
     # TODO:                                                             #
@@ -238,12 +239,12 @@ def main():
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = 0.001
-    num_epoch = 400
-    lamb = 0.0001
+    lr = 0.01
+    num_epoch = 40
+    lamb = 0.001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
-          valid_data, num_epoch)
+          train_data, valid_data, num_epoch)
     test_result = evaluate(model, zero_train_matrix, test_data)
     print("test accuracy: \n" + str(test_result))
     #####################################################################

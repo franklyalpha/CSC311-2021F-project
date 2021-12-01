@@ -80,7 +80,7 @@ class AutoEncoder(nn.Module):
         #####################################################################
 
         inner = self.g.forward(inputs)
-        inner_act = nn.ReLU()(inner)
+        inner_act = nn.Tanh()(inner)
         hidden1 = self.encode1.forward(inner_act)
         hidden2 = self.encode2.forward(hidden1)
         hidden2_act = nn.Sigmoid()(hidden2)
@@ -193,7 +193,8 @@ def main():
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
-
+    test_result = evaluate(model, zero_train_matrix, test_data)
+    print("test accuracy: \n" + str(test_result))
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
