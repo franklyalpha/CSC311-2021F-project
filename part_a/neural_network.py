@@ -131,10 +131,10 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
             train_loss += loss.item()
             optimizer.step()
 
-        train_acc = evaluate(model, zero_train_matrix, train_data)
+        # train_acc = evaluate(model, zero_train_matrix, train_data)
         valid_acc = evaluate(model, zero_train_matrix, valid_data)
-        print("Epoch: {} \tTraining Cost: {:.6f}\t "
-              "Train Acc: {}".format(epoch, train_loss, train_acc))
+        # print("Epoch: {} \tTraining Cost: {:.6f}\t "
+              # "Train Acc: {}".format(epoch, train_loss, train_acc))
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
         loss_recording.append(train_loss)
@@ -238,9 +238,9 @@ def main():
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = 0.01
-    num_epoch = 40
-    lamb = 0.001
+    lr = 0.001
+    num_epoch = 400
+    lamb = 0.0001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           train_data, valid_data, num_epoch)

@@ -82,10 +82,12 @@ class AutoEncoder(nn.Module):
         inner = self.g.forward(inputs)
         inner_act = nn.Tanh()(inner)
         hidden1 = self.encode1.forward(inner_act)
-        hidden2 = self.encode2.forward(hidden1)
+        hidden1_act = nn.Hardtanh()(hidden1)
+        hidden2 = self.encode2.forward(hidden1_act)
         hidden2_act = nn.Sigmoid()(hidden2)
         hidden3 = self.decode1.forward(hidden2_act)
-        hidden4 = self.decode2.forward(hidden3)
+        hidden3_act = nn.Tanh()(hidden3)
+        hidden4 = self.decode2.forward(hidden3_act)
         outer = self.h.forward(hidden4)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
@@ -189,7 +191,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.001
-    num_epoch = 140
+    num_epoch = 125
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
