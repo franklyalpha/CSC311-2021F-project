@@ -61,7 +61,7 @@ class AutoEncoder(nn.Module):
         g_w_norm = torch.norm(self.g.weight, 2) ** 2
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
         en1_w_norm = torch.norm(self.encode1.weight, 2) ** 2
-        de1_w_norm = torch.norm(self.decode2.weight, 2) ** 2
+        de1_w_norm = torch.norm(self.decode1.weight, 2) ** 2
         return g_w_norm + h_w_norm + en1_w_norm + de1_w_norm
 
     def forward(self, inputs):

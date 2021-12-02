@@ -195,7 +195,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.001
-    num_epoch = 140
+    num_epoch = 200
     lamb = 0.0001
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
