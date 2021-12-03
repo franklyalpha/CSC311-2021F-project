@@ -245,6 +245,10 @@ def main():
     lr = 0.01
     num_epoch = 40
     lamb = 0.0001
+    # below parameters is for part B experiment
+    # lr = 0.001
+    # num_epoch = 200
+    # lamb = 0.0001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           train_data, valid_data, num_epoch)
