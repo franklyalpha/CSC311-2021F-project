@@ -242,8 +242,8 @@ def main():
     model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = 0.001
-    num_epoch = 200
+    lr = 0.01
+    num_epoch = 40
     lamb = 0.0001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,

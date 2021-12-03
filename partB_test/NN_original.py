@@ -86,7 +86,7 @@ class AutoEncoder(nn.Module):
         hidden2 = self.encode2.forward(hidden1_act)
         hidden2_act = nn.Sigmoid()(hidden2)
         hidden3 = self.decode1.forward(hidden2_act)
-        hidden3_act = nn.Tanh()(hidden3)
+        hidden3_act = nn.Hardtanh()(hidden3)
         hidden4 = self.decode2.forward(hidden3_act)
         outer = self.h.forward(hidden4)
         outer_activ = nn.Sigmoid()(outer)
