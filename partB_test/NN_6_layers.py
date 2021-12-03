@@ -8,7 +8,7 @@ import torch.utils.data
 
 import numpy as np
 import torch
-
+import json
 
 def load_data(base_path="../data"):
     """ Load the data in PyTorch Tensor.
@@ -121,6 +121,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
+    # valid_acc_record = []
+
     for epoch in range(0, num_epoch):
         train_loss = 0.
         for user_id in range(num_student):
@@ -145,6 +147,12 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc = evaluate(model, zero_train_data, valid_data)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
+
+    #     valid_acc_record.append(valid_acc)
+    #
+    # with open("nn6_valid_acc.txt", "w") as fp:
+    #     json.dump(valid_acc_record, fp)
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################

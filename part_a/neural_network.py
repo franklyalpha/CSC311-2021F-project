@@ -8,7 +8,7 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+import json
 
 def load_data(base_path="../data"):
     """ Load the data in PyTorch Tensor.
@@ -141,6 +141,10 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
         valid_acc_record.append(valid_acc)
         epoch_record.append(epoch)
         highest_valid_acc = max(highest_valid_acc, valid_acc)
+
+    # with open("nn0_valid_acc.txt", "w") as fp:
+    #     json.dump(valid_acc_record, fp)
+
     plot(epoch_record, loss_recording, valid_acc_record)
     return highest_valid_acc
     #####################################################################
@@ -239,7 +243,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.001
-    num_epoch = 400
+    num_epoch = 200
     lamb = 0.0001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
