@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import json
 
-"""Modification on the autoencoder for Part B (adding more layers).
+"""Modification to the autoencoder for Part B (adding more layers).
 """
 
 def load_data(base_path="../data"):
