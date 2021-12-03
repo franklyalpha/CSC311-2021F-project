@@ -57,9 +57,9 @@ def _plot(k_vals, accs, filename):
 
 
 def main():
-    sparse_matrix = load_train_sparse("./data").toarray()
-    val_data = load_valid_csv("./data")
-    test_data = load_public_test_csv("./data")
+    sparse_matrix = load_train_sparse("../data").toarray()
+    val_data = load_valid_csv("../data")
+    test_data = load_public_test_csv("../data")
 
     print("Sparse matrix:")
     print(sparse_matrix)
@@ -78,10 +78,10 @@ def main():
     for k in k_vals:
         user_acc = knn_impute_by_user(sparse_matrix, val_data, k)
         user_accs.append(user_acc)
-    
+
     # Plot and report the accuracy on the validation data as a function of k
     _plot(k_vals, user_accs, "accuracy_user_based.png")
-    
+
     # 1(b)
     # k=11 has the highest performance on validation data
     user_acc_test = knn_impute_by_user(sparse_matrix, test_data, 11)
@@ -93,15 +93,15 @@ def main():
     for k in k_vals:
         item_acc = knn_impute_by_item(sparse_matrix, val_data, k)
         item_accs.append(item_acc)
-    
+
     # Plot and report the accuracy on the validation data as a function of k
     _plot(k_vals, item_accs, "accuracy_item_based.png")
-    
+
     # k=21 has the highest performance on validation data
     item_acc_test = knn_impute_by_item(sparse_matrix, test_data, 21)
     print(f"The test accuracy for item-based collaborative filtering kNN is: \
         {item_acc_test}")
-        
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
