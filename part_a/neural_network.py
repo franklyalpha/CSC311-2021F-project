@@ -131,13 +131,13 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
             train_loss += loss.item()
             optimizer.step()
 
-        # train_acc = evaluate(model, zero_train_matrix, train_data)
+        train_acc = evaluate(model, zero_train_matrix, train_data)
         valid_acc = evaluate(model, zero_train_matrix, valid_data)
-        # print("Epoch: {} \tTraining Cost: {:.6f}\t "
-              # "Train Acc: {}".format(epoch, train_loss, train_acc))
+        print("Epoch: {} \tTraining Cost: {:.6f}\t "
+              "Train Acc: {}".format(epoch, train_loss, train_acc))
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
-        loss_recording.append(train_loss)
+        loss_recording.append(train_acc)
         valid_acc_record.append(valid_acc)
         epoch_record.append(epoch)
         highest_valid_acc = max(highest_valid_acc, valid_acc)
@@ -154,15 +154,12 @@ def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_da
 
 def plot(epoches, losses, valid_accs):
     plt.clf()
-    plt.title("training loss and epoch")
-    plt.plot(epoches, losses)
-    plt.legend()
-    plt.savefig("network_reg_loss")
-    plt.clf()
-    plt.title("validation accuracy and epoch")
+    plt.title("training accuracy, validation accuracy and epoch")
     plt.plot(epoches, valid_accs)
-    plt.legend()
-    plt.savefig("network_reg_accuracy")
+    plt.plot(epoches, losses)
+    plt.legend(["validation accuracy", "training accuracy"])
+    plt.savefig("network_reg_loss")
+
 
 
 def evaluate(model, train_data, valid_data):
@@ -243,7 +240,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 40
+    num_epoch = 60
     lamb = 0.0001
     # below parameters is for part B experiment
     # lr = 0.001
