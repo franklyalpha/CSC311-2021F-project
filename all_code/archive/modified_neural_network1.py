@@ -1,14 +1,12 @@
-from utils import *
+from all_code.utils import *
 from torch.autograd import Variable
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import pdb
 
 """Corrupt known data in the sparse matrix and apply different weighting. 
 """

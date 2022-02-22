@@ -1,6 +1,4 @@
-import numpy as np
-from utils import *
-import pdb
+from all_code.utils import *
 
 # the idea of classifying data for similar users:
 '''

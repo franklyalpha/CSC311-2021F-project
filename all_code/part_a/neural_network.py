@@ -1,17 +1,13 @@
-from utils import *
+from all_code.utils import *
 from torch.autograd import Variable
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
-
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import json
 
-"""Modification to the autoencoder for Part B (adding more layers).
-"""
 
 def load_data(base_path="../data"):
     """ Load the data in PyTorch Tensor.
@@ -29,6 +25,7 @@ def load_data(base_path="../data"):
     train_matrix = load_train_sparse(base_path).toarray()
     valid_data = load_valid_csv(base_path)
     test_data = load_public_test_csv(base_path)
+    train_data = load_train_csv(base_path)
 
     zero_train_matrix = train_matrix.copy()
     # Fill in the missing entries to 0.
@@ -37,11 +34,11 @@ def load_data(base_path="../data"):
     zero_train_matrix = torch.FloatTensor(zero_train_matrix)
     train_matrix = torch.FloatTensor(train_matrix)
 
-    return zero_train_matrix, train_matrix, valid_data, test_data
+    return zero_train_matrix, train_matrix, train_data, valid_data, test_data
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, num_question, code1, code2, code_vect):
+    def __init__(self, num_question, k=100):
         """ Initialize a class AutoEncoder.
 
         :param num_question: int
@@ -50,12 +47,8 @@ class AutoEncoder(nn.Module):
         super(AutoEncoder, self).__init__()
 
         # Define linear functions.
-        self.g = nn.Linear(num_question, code1)
-        self.encode1 = nn.Linear(code1, code2)
-        self.encode2 = nn.Linear(code2, code_vect)
-        self.decode1 = nn.Linear(code_vect, code2)
-        self.decode2 = nn.Linear(code2, code1)
-        self.h = nn.Linear(code1, num_question)
+        self.g = nn.Linear(num_question, k)
+        self.h = nn.Linear(k, num_question)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -64,11 +57,7 @@ class AutoEncoder(nn.Module):
         """
         g_w_norm = torch.norm(self.g.weight, 2) ** 2
         h_w_norm = torch.norm(self.h.weight, 2) ** 2
-        en1_w_norm = torch.norm(self.encode1.weight, 2) ** 2
-        en2_w_norm = torch.norm(self.encode2.weight, 2) ** 2
-        de1_w_norm = torch.norm(self.decode1.weight, 2) ** 2
-        de2_w_norm = torch.norm(self.decode2.weight, 2) ** 2
-        return g_w_norm + h_w_norm + en1_w_norm + en2_w_norm + de1_w_norm + de2_w_norm
+        return g_w_norm + h_w_norm
 
     def forward(self, inputs):
         """ Return a forward pass given inputs.
@@ -81,17 +70,9 @@ class AutoEncoder(nn.Module):
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
-
         inner = self.g.forward(inputs)
-        inner_act = nn.Tanh()(inner)
-        hidden1 = self.encode1.forward(inner_act)
-        hidden1_act = nn.Hardtanh()(hidden1)
-        hidden2 = self.encode2.forward(hidden1_act)
-        hidden2_act = nn.Sigmoid()(hidden2)
-        hidden3 = self.decode1.forward(hidden2_act)
-        hidden3_act = nn.Hardtanh()(hidden3)
-        hidden4 = self.decode2.forward(hidden3_act)
-        outer = self.h.forward(hidden4)
+        inner_activ = nn.Sigmoid()(inner)
+        outer = self.h.forward(inner_activ)
         outer_activ = nn.Sigmoid()(outer)
         out = outer_activ
         #####################################################################
@@ -100,15 +81,15 @@ class AutoEncoder(nn.Module):
         return out
 
 
-def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
+def train(model, lr, lamb, train_matrix, zero_train_matrix, train_data, valid_data, num_epoch):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
     :param model: Module
     :param lr: float
     :param lamb: float -> for regularization
-    :param train_data: 2D FloatTensor
-    :param zero_train_data: 2D FloatTensor
+    :param train_matrix: 2D FloatTensor
+    :param zero_train_matrix: 2D FloatTensor
     :param valid_data: Dict
     :param num_epoch: int
     :return: None
@@ -120,20 +101,25 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     model.train()
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr)
-    num_student = train_data.shape[0]
-    # valid_acc_record = []
-
+    num_student = train_matrix.shape[0]
+    loss_recording = []
+    valid_acc_record = []
+    epoch_record = []
+    highest_valid_acc = 0
     for epoch in range(0, num_epoch):
         train_loss = 0.
+        # norm = model.get_weight_norm()
+        # denom = 2
         for user_id in range(num_student):
 
-            inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
+            inputs = Variable(zero_train_matrix[user_id]).unsqueeze(0)
             target = inputs.clone()
+
             optimizer.zero_grad()
             output = model(inputs)
 
             # Mask the target to only compute the gradient of valid entries.
-            nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
+            nan_mask = np.isnan(train_matrix[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
             norm = model.get_weight_norm()
@@ -144,18 +130,35 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             train_loss += loss.item()
             optimizer.step()
 
-        valid_acc = evaluate(model, zero_train_data, valid_data)
+        train_acc = evaluate(model, zero_train_matrix, train_data)
+        valid_acc = evaluate(model, zero_train_matrix, valid_data)
+        print("Epoch: {} \tTraining Cost: {:.6f}\t "
+              "Train Acc: {}".format(epoch, train_loss, train_acc))
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
+        loss_recording.append(train_acc)
+        valid_acc_record.append(valid_acc)
+        epoch_record.append(epoch)
+        highest_valid_acc = max(highest_valid_acc, valid_acc)
 
-    #     valid_acc_record.append(valid_acc)
-    #
-    # with open("nn4_valid_acc.txt", "w") as fp:
+    # with open("nn0_valid_acc.txt", "w") as fp:
     #     json.dump(valid_acc_record, fp)
 
+    plot(epoch_record, loss_recording, valid_acc_record)
+    return highest_valid_acc
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
+
+
+def plot(epoches, losses, valid_accs):
+    plt.clf()
+    plt.title("training accuracy, validation accuracy and epoch")
+    plt.plot(epoches, valid_accs)
+    plt.plot(epoches, losses)
+    plt.legend(["validation accuracy", "training accuracy"])
+    plt.savefig("network_reg_loss")
+
 
 
 def evaluate(model, train_data, valid_data):
@@ -181,12 +184,11 @@ def evaluate(model, train_data, valid_data):
         if guess == valid_data["is_correct"][i]:
             correct += 1
         total += 1
-    return round(correct / float(total), 4)
+    return correct / float(total)
 
 
 def main():
-
-    zero_train_matrix, train_matrix, valid_data, test_data = load_data()
+    zero_train_matrix, train_matrix, train_data, valid_data, test_data = load_data()
 
     #####################################################################
     # TODO:                                                             #
@@ -194,19 +196,58 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
+    # k_list = [10, 50, 100, 200, 500]
+    # k_accuracy = []
+    # for k in k_list:
+    #     model = AutoEncoder(train_matrix.shape[1], k)
+    #
+    # # Set optimization hyperparameters.
+    #     lr = 0.01
+    #     lr = 0.001
+    #     lr = 0.1
+    #     num_epoch = 200
+    #     lamb = 0.1
+    #
+    #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
+    #         valid_data, num_epoch)
+    #     test_result = evaluate(model, zero_train_matrix, test_data)
+    #     print("test accuracy: \n" + str(test_result))
+    #     k_accuracy.append(highest_acc)
+    # best_k = k_accuracy.index(max(k_accuracy))
+    # print("will use this k for further procedure due to its highest accuracy:" + str(best_k))
 
-    code1 = 100
-    code2 = 30
-    code_vect = 10
-    model = AutoEncoder(train_matrix.shape[1], code1, code2, code_vect)
+    # lambda_list = [1, 0.1, 0.01, 0.001]
+    # lambda_accuracy = []
+    # for lamb in lambda_list:
+    #     k = 50
+    #     model = AutoEncoder(train_matrix.shape[1], k)
+    #
+    # # Set optimization hyperparameters.
+    #     lr = 0.01
+    #     num_epoch = 50
+    #
+    #     highest_acc = train(model, lr, lamb, train_matrix, zero_train_matrix,
+    #         valid_data, num_epoch)
+    #     test_result = evaluate(model, zero_train_matrix, test_data)
+    #     print("test accuracy: \n" + str(test_result))
+    #     lambda_accuracy.append(highest_acc)
+    # best_lambda = lambda_accuracy.index(max(lambda_accuracy))
+    # print("will use this lambda for further procedure due to its highest accuracy:" + str(best_lambda))
+
+    k = 50
+    model = AutoEncoder(train_matrix.shape[1], k)
 
     # Set optimization hyperparameters.
-    lr = 0.001
-    # num_epoch = 200
-    num_epoch = 125
+    lr = 0.01
+    num_epoch = 60
     lamb = 0.0001
+    # below parameters is for part B experiment
+    # lr = 0.001
+    # num_epoch = 200
+    # lamb = 0.0001
+
     train(model, lr, lamb, train_matrix, zero_train_matrix,
-          valid_data, num_epoch)
+          train_data, valid_data, num_epoch)
     test_result = evaluate(model, zero_train_matrix, test_data)
     print("test accuracy: \n" + str(test_result))
     #####################################################################
@@ -216,5 +257,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

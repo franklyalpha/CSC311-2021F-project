@@ -1,5 +1,5 @@
 from sklearn.impute import KNNImputer
-from utils import *
+from all_code.utils import *
 import matplotlib.pyplot as plt
 
 

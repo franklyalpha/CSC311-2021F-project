@@ -1,4 +1,4 @@
-from utils import *
+from all_code.utils import *
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ def sigmoid(x):
     return np.exp(x) / (1 + np.exp(x))
 
 
-def neg_log_likelihood(data, theta, beta):
+def neg_log_likelihood(data, theta, beta, alpha, r):
     """ Compute the negative log-likelihood.
 
     You may optionally replace the function arguments to receive a matrix.
@@ -19,6 +19,8 @@ def neg_log_likelihood(data, theta, beta):
     is_correct: list}
     :param theta: Vector
     :param beta: Vector
+    :param alpha: Vector
+    :param r: float
     :return: float
     """
     #####################################################################
@@ -30,22 +32,26 @@ def neg_log_likelihood(data, theta, beta):
     for i, uid in enumerate(data["user_id"]):
         qid = data["question_id"][i]
         c = data["is_correct"][i]
-        log_lklihood += c * (theta[uid] - beta[qid]) - np.log(
-            1 + np.exp(theta[uid] - beta[qid]))
 
-    #####################################################################
+        exp_part = np.exp(alpha[qid] * (theta[uid] - beta[qid]))
+
+        log_lklihood += c * np.log(r + exp_part) + (1 - c) * np.log(
+            1 - r) - np.log(1 + exp_part)
+
+#####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
     return -log_lklihood
 
 
-def update_theta_beta(data, lr, theta, beta):
-    """ Update theta and beta using gradient descent.
+def update_theta_beta(data, lr, theta, beta, alpha, r):
+    """ Update theta, beta, and alpha using gradient descent.
 
     You are using alternating gradient descent. Your update should look:
     for i in iterations ...
         theta <- new_theta
         beta <- new_beta
+        alpha <- new_alpha
 
     You may optionally replace the function arguments to receive a matrix.
 
@@ -54,6 +60,8 @@ def update_theta_beta(data, lr, theta, beta):
     :param lr: float
     :param theta: Vector
     :param beta: Vector
+    :param alpha: Vector
+    :param r: float
     :return: tuple of vectors
     """
     #####################################################################
@@ -66,27 +74,39 @@ def update_theta_beta(data, lr, theta, beta):
 
     theta_copy = theta.copy()
     beta_copy = beta.copy()
+    alpha_copy = alpha.copy()
 
-    # update theta
-    # here notice that the equation is different from what we have in part a
-    # in part a: derivative with respect to theta_i is Sum(cij - sigmoid(..))
-    # but here we are doing Sum(sigmoid(..) - cij)
-    # this is because we are using negative lld here while in part a we are
-    # calculating the derivative for lld
     for i in range(len(theta)):
-        # we only consider the questions that user i answers
-        sigmoid_part = sigmoid(theta_copy[i] - beta_copy[qids[uids == i]])
-        theta[i] -= lr * (np.sum(sigmoid_part) - np.sum(cs[uids == i]))
-    # update beta
+        # we get the a_j (th_i + b_j) part
+        exp_inner = alpha_copy[qids[uids == i]] * (
+                theta_copy[i] - beta_copy[qids[uids == i]])
+        exp_part = np.exp(exp_inner)
+        c = cs[uids == i]
+
+        first_part = (c.reshape([len(c), 1]) * exp_part) / (r + exp_part)
+        second_part = sigmoid(exp_inner)
+
+        theta[i] -= lr * np.sum(alpha_copy[qids[uids == i]]
+                                * (second_part - first_part))
+
     for j in range(len(beta)):
-        # we only consider the users who answer question j
-        sigmoid_part = sigmoid(theta_copy[uids[qids == j]] - beta_copy[j])
-        beta[j] -= lr * (np.sum(cs[qids == j]) - np.sum(sigmoid_part))
+        # we get the a_j (th_i + b_j) part
+        exp_inner = alpha_copy[j] * (
+                theta_copy[uids[qids == j]] - beta_copy[j])
+        exp_part = np.exp(exp_inner)
+        c = cs[qids == j]
+
+        first_part = (c.reshape([len(c), 1]) * exp_part) / (r + exp_part)
+        second_part = sigmoid(exp_inner)
+
+        beta[j] -= lr * np.sum(alpha_copy[j] * (first_part - second_part))
+        alpha[j] -= lr * np.sum((theta_copy[uids[qids == j]] - beta_copy[j])
+                                * (second_part - first_part))
 
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
-    return theta, beta
+    return theta, beta, alpha
 
 
 def irt(train_data, val_data, lr, iterations):
@@ -105,6 +125,9 @@ def irt(train_data, val_data, lr, iterations):
     # TODO: Initialize theta and beta.
     theta = np.zeros([542, 1])
     beta = np.zeros([1774, 1])
+    alpha = np.ones([1774, 1])
+    # assume there are four choices
+    r = 0.25
 
     train_acc_lst = []
     val_acc_lst = []
@@ -112,16 +135,16 @@ def irt(train_data, val_data, lr, iterations):
     val_neg_log_likelihood = []
 
     for i in range(iterations):
-        theta, beta = update_theta_beta(train_data, lr, theta, beta)
+        theta, beta, alpha = update_theta_beta(train_data, lr, theta, beta, alpha, r)
 
-        train_neg_lld = neg_log_likelihood(train_data, theta=theta, beta=beta)
+        train_neg_lld = neg_log_likelihood(train_data, theta=theta, beta=beta, alpha=alpha, r=r)
         train_neg_log_likelihood.append(train_neg_lld)
-        val_neg_lld = neg_log_likelihood(val_data, theta=theta, beta=beta)
+        val_neg_lld = neg_log_likelihood(val_data, theta=theta, beta=beta, alpha=alpha, r=r)
         val_neg_log_likelihood.append(val_neg_lld)
 
-        train_score = evaluate(data=train_data, theta=theta, beta=beta)
+        train_score = evaluate(data=train_data, theta=theta, beta=beta, alpha=alpha, r=r)
         train_acc_lst.append(train_score)
-        val_score = evaluate(data=val_data, theta=theta, beta=beta)
+        val_score = evaluate(data=val_data, theta=theta, beta=beta, alpha=alpha, r=r)
         val_acc_lst.append(val_score)
 
         print("TRAIN - NLLK: {} \t Score: {}".format(train_neg_lld,
@@ -129,23 +152,25 @@ def irt(train_data, val_data, lr, iterations):
         print("VAL - NLLK: {} \t Score: {}".format(val_neg_lld, val_score))
 
     # TODO: You may change the return values to achieve what you want.
-    return theta, beta, train_neg_log_likelihood, val_neg_log_likelihood
+    return theta, beta, alpha, r, train_neg_log_likelihood, val_neg_log_likelihood
 
 
-def evaluate(data, theta, beta):
+def evaluate(data, theta, beta, alpha, r):
     """ Evaluate the model given data and return the accuracy.
-
     :param data: A dictionary {user_id: list, question_id: list,
     is_correct: list}
+
     :param theta: Vector
     :param beta: Vector
+    :param alpha: Vector
+    :param r: float
     :return: float
     """
     pred = []
     for i, q in enumerate(data["question_id"]):
         u = data["user_id"][i]
-        x = (theta[u] - beta[q]).sum()
-        p_a = sigmoid(x)
+        x = (alpha[q] * (theta[u] - beta[q])).sum()
+        p_a = r + (1 - r) * sigmoid(x)
         pred.append(p_a >= 0.5)
     return np.sum((data["is_correct"] == np.array(pred))) \
            / len(data["is_correct"])
@@ -164,58 +189,58 @@ def main():
     # code, report the validation and test accuracy.                    #
     #####################################################################
     lr = 0.01
-    iterations = 7
+    iterations = 20
 
-    theta, beta, train_neg_log_likelihood, val_neg_log_likelihood = irt(
+    theta, beta, alpha, r, train_neg_log_likelihood, val_neg_log_likelihood = irt(
         train_data, val_data, lr, iterations)
 
-    plt.plot(train_neg_log_likelihood, label="training")
-    plt.plot(val_neg_log_likelihood, label="validation")
-    plt.ylabel("Negative Log-Likelihood")
-    plt.xlabel("Number of Iterations")
-    plt.title("Negative Log-Likelihood for Training and Validation Data")
-    plt.legend()
-    plt.savefig("Q2b.png")
-    plt.show()
+    plt.plot(train_neg_log_likelihood, label="training");
+    plt.plot(val_neg_log_likelihood, label="validation");
+    plt.ylabel("Negative Log-Likelihood");
+    plt.xlabel("Number of Iterations");
+    plt.title("Negative Log-Likelihood for Training and Validation Data");
+    plt.legend();
+    plt.savefig("irt_nlld_vs_iter.png");
+    plt.show();
 
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
 
-    # part c
-    val_score = evaluate(data=val_data, theta=theta, beta=beta)
-    test_score = evaluate(data=test_data, theta=theta, beta=beta)
-
-    print("Validation Accuracy: ", val_score)
-    print("Test Accuracy: ", test_score)
-
-    #####################################################################
-    # TODO:                                                             #
-    # Implement part (d)                                                #
-    #####################################################################
-
-    # we have 1774 questions in total. Select three:
-    questions = [64, 734, 1356]
-    # we sort the theta for the sake a=of plotting
-    theta_copy = theta.reshape(-1)
-    theta_copy.sort()
-
-    for qid in questions:
-        prob = sigmoid(theta_copy - beta[qid])
-        plt.plot(theta_copy, prob, label="Question {} with beta {:.2f}".format(
-            qid, beta[qid][0]))
-
-    plt.ylabel("Probability of the Correct Response")
-    plt.xlabel("Theta")
-    plt.title(
-        "Probability of the Correct Response to Selected Questions vs. Theta")
-    plt.legend()
-    plt.savefig("Q2d.png")
-    plt.show()
+    # # part c
+    # val_score = evaluate(data=val_data, theta=theta, beta=beta, alpha=alpha, r=r)
+    # test_score = evaluate(data=test_data, theta=theta, beta=beta, alpha=alpha, r=r)
+    #
+    # print("Validation Accuracy: ", val_score)
+    # print("Test Accuracy: ", test_score)
+    #
+    # #####################################################################
+    # # TODO:                                                             #
+    # # Implement part (d)                                                #
+    # #####################################################################
+    #
+    # # we have 1774 questions in total. Select three:
+    # questions = [64, 734, 1356]
+    # # we sort the theta for the sake a=of plotting
+    # theta_copy = theta.reshape(-1)
+    # theta_copy.sort()
+    #
+    # for qid in questions:
+    #     prob = sigmoid(theta_copy - beta[qid])
+    #     plt.plot(theta_copy, prob, label="Question {} with beta {:.2f}".format(
+    #         qid, beta[qid][0]))
+    #
+    # plt.ylabel("Probability of the Correct Response")
+    # plt.xlabel("Theta")
+    # plt.title(
+    #     "Probability of the Correct Response to Selected Questions vs. Theta")
+    # plt.legend()
+    # plt.savefig("irt_p_vs_theta.png")
+    # plt.show()
 
 #####################################################################
-    #                       END OF YOUR CODE                            #
-    #####################################################################
+#                       END OF YOUR CODE                            #
+#####################################################################
 
 
 if __name__ == "__main__":

@@ -1,12 +1,11 @@
 # TODO: complete this file.
-from utils import *
+from all_code.utils import *
 import neural_network
 import numpy as np
 import torch
 from torch.autograd import Variable
 torch.manual_seed(0)
 
-import pdb
 
 def load_data(base_path="../data"):
     """Load the data.
@@ -63,7 +62,7 @@ def train(setting, train_matrix, train_data, valid_data, seed):
     # train model and generate predictions
     model = neural_network.AutoEncoder(bootstrap_train.shape[1], setting["k"])
     neural_network.train(model, setting["lr"], setting["lamb"], bootstrap_train,
-          zero_bootstrap_train, train_data, valid_data, setting["num_epoch"])
+                         zero_bootstrap_train, train_data, valid_data, setting["num_epoch"])
     return model
 
 def bagging_train(settings, train_matrix, train_data, valid_data):

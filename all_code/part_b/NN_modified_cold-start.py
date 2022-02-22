@@ -1,9 +1,7 @@
-from utils import *
 from data_preprocess import *
 from torch.autograd import Variable
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import matplotlib.pyplot as plt

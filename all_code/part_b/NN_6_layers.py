@@ -1,14 +1,13 @@
-from utils import *
+from all_code.utils import *
 from torch.autograd import Variable
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 
 import numpy as np
 import torch
-import json
+
 
 def load_data(base_path="../data"):
     """ Load the data in PyTorch Tensor.

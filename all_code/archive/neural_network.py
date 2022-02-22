@@ -1,9 +1,8 @@
-from utils import *
+from all_code.utils import *
 from data_pre_process import *
 from torch.autograd import Variable
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 
